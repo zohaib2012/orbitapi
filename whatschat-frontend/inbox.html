@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raja Cloud - Inbox</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --green: #25D366; --green-dark: #1ebe5a; --green-light: #e8faf0;
+    --sidebar-bg: #ffffff; --main-bg: #f4f6f8; --card-bg: #ffffff;
+    --text-primary: #111827; --text-secondary: #6b7280; --text-light: #9ca3af;
+    --border: #e5e7eb; --active-nav: #f0fdf4;
+    --shadow: 0 1px 3px rgba(0,0,0,0.07); --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+    --radius: 12px; --radius-sm: 8px;
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--main-bg); color: var(--text-primary); display: flex; min-height: 100vh; font-size: 14px; }
+
+  /* ── SIDEBAR ─────────────────────────────────────────────────────────── */
+  .sidebar { width: 200px; background: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; height: 100vh; top: 0; left: 0; z-index: 100; }
+  .logo { display: flex; align-items: center; gap: 10px; padding: 20px 18px; border-bottom: 1px solid var(--border); }
+  .logo-icon { width: 34px; height: 34px; background: var(--green); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .logo span { font-weight: 700; font-size: 15px; color: var(--text-primary); letter-spacing: -0.3px; }
+  nav { flex: 1; padding: 14px 10px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+  nav a { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius-sm); color: var(--text-secondary); text-decoration: none; font-weight: 500; font-size: 13.5px; transition: all .15s; }
+  nav a:hover { background: var(--main-bg); color: var(--text-primary); }
+  nav a.active { background: var(--active-nav); color: var(--green); }
+  nav a svg { width: 17px; height: 17px; flex-shrink: 0; }
+  .nav-badge { margin-left: auto; background: var(--green); color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 10px; min-width: 18px; text-align: center; }
+  .user-info { padding: 14px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .user-avatar { width: 32px; height: 32px; background: var(--green); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+  .user-details .name  { font-weight: 600; font-size: 13px; }
+  .user-details .email { font-size: 11px; color: var(--text-light); }
+
+  /* ── MAIN ────────────────────────────────────────────────────────────── */
+  .main { margin-left: 200px; flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+  .topbar { padding: 14px 24px; background: white; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .topbar h2 { font-size: 16px; font-weight: 600; }
+  .topbar-right { display: flex; gap: 10px; align-items: center; }
+  .search-box { display: flex; align-items: center; gap: 8px; background: var(--main-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 7px 12px; }
+  .search-box input { border: none; background: transparent; outline: none; font-size: 13px; width: 180px; }
+  .search-box svg { width: 15px; height: 15px; color: var(--text-light); flex-shrink: 0; }
+
+  /* ── CHAT LAYOUT ─────────────────────────────────────────────────────── */
+  .chat-layout { display: flex; flex: 1; overflow: hidden; }
+
+  /* ── CONVERSATIONS LIST ───────────────────────────────────────────────── */
+  .conv-list { width: 300px; border-right: 1px solid var(--border); background: white; display: flex; flex-direction: column; flex-shrink: 0; }
+  .conv-header { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .conv-header h3 { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+  .conv-search { display: flex; align-items: center; gap: 8px; background: var(--main-bg); border-radius: var(--radius-sm); padding: 7px 10px; }
+  .conv-search input { border: none; background: transparent; outline: none; font-size: 13px; flex: 1; }
+  .conv-search svg { width: 14px; height: 14px; color: var(--text-light); flex-shrink: 0; }
+  .conv-items { flex: 1; overflow-y: auto; }
+  .conv-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background .1s; }
+  .conv-item:hover { background: var(--main-bg); }
+  .conv-item.active { background: var(--green-light); border-left: 3px solid var(--green); }
+  .conv-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--green); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 15px; flex-shrink: 0; }
+  .conv-info { flex: 1; min-width: 0; }
+  .conv-name { font-weight: 600; font-size: 13.5px; margin-bottom: 2px; }
+  .conv-preview { font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .conv-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+  .conv-time { font-size: 11px; color: var(--text-light); }
+  .conv-unread { background: var(--green); color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 10px; min-width: 18px; text-align: center; }
+  .conv-empty { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
+  .conv-empty svg { width: 40px; height: 40px; margin: 0 auto 12px; display: block; color: var(--text-light); }
+
+  /* ── CHAT WINDOW ─────────────────────────────────────────────────────── */
+  .chat-window { flex: 1; display: flex; flex-direction: column; background: #f0f2f5; }
+  .chat-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-secondary); }
+  .chat-empty svg { width: 60px; height: 60px; color: var(--text-light); margin-bottom: 16px; }
+  .chat-empty h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); }
+
+  .chat-header { background: white; border-bottom: 1px solid var(--border); padding: 12px 20px; display: flex; align-items: center; gap: 12px; }
+  .chat-header-avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--green); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 14px; }
+  .chat-header-info .name  { font-weight: 600; font-size: 14px; }
+  .chat-header-info .phone { font-size: 12px; color: var(--text-secondary); }
+  .chat-header-actions { margin-left: auto; display: flex; gap: 8px; }
+  .icon-btn-sm { width: 34px; height: 34px; border: none; background: var(--main-bg); border-radius: var(--radius-sm); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); transition: all .15s; }
+  .icon-btn-sm:hover { background: var(--border); color: var(--text-primary); }
+  .icon-btn-sm svg { width: 16px; height: 16px; }
+
+  /* ── MESSAGES ────────────────────────────────────────────────────────── */
+  .chat-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 6px; }
+  .msg-bubble { max-width: 65%; padding: 8px 12px; border-radius: 12px; font-size: 13.5px; line-height: 1.5; position: relative; transition: background .4s; }
+  .msg-bubble.inbound  { background: white; border-radius: 0 12px 12px 12px; align-self: flex-start; box-shadow: var(--shadow); }
+  .msg-bubble.outbound { background: #dcf8c6; border-radius: 12px 0 12px 12px; align-self: flex-end; }
+
+  .msg-text-body  { word-break: break-word; }
+  .msg-caption    { font-size: 12px; color: var(--text-secondary); margin-top: 3px; }
+
+  .msg-media      { max-width: 240px; border-radius: 8px; margin-bottom: 4px; }
+  .msg-media img  { width: 100%; border-radius: 8px; display: block; }
+  .msg-media video{ width: 100%; border-radius: 8px; display: block; }
+  .msg-audio-wrap { display: flex; align-items: center; gap: 8px; }
+  .msg-audio-wrap audio { max-width: 190px; height: 32px; }
+
+  .msg-date-divider { text-align: center; font-size: 11px; color: var(--text-light); background: rgba(255,255,255,0.8); padding: 4px 12px; border-radius: 10px; align-self: center; margin: 6px 0; }
+
+  /* ── Message footer row ──────────────────────────────────────────────── */
+  .msg-footer-row { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-top: 3px; }
+  .msg-time       { font-size: 10px; color: var(--text-light); }
+
+  /* ── FIX: Reply button ────────────────────────────────────────────────── */
+  .reply-btn-inline {
+    background: none; border: none; font-size: 13px; cursor: pointer;
+    color: var(--text-light); padding: 0 2px; opacity: 0; transition: opacity .15s;
+  }
+  .msg-bubble:hover .reply-btn-inline { opacity: 1; }
+  .reply-btn-inline:hover { color: var(--green); }
+
+  /* ── FIX: Copy button (naya) ─────────────────────────────────────────── */
+  .copy-btn-inline {
+    background: none; border: none; font-size: 13px; cursor: pointer;
+    color: var(--text-light); padding: 0 2px; opacity: 0; transition: opacity .15s;
+  }
+  .msg-bubble:hover .copy-btn-inline { opacity: 1; }
+  .copy-btn-inline:hover { color: var(--green); }
+
+  /* ── Quote bar inside message ────────────────────────────────────────── */
+  .quote-bar { display: flex; align-items: center; gap: 7px; background: rgba(0,0,0,.06); border-radius: 8px; padding: 5px 8px; cursor: pointer; margin-bottom: 6px; transition: background .15s; }
+  .quote-bar:hover { background: rgba(0,0,0,.1); }
+  .q-line { width: 3px; min-height: 26px; background: var(--green); border-radius: 2px; flex-shrink: 0; }
+  .q-text { font-size: 12px; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+
+  /* ── REPLY PREVIEW BAR (above input) ────────────────────────────────── */
+  .reply-preview-bar { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: white; border-top: 1px solid var(--border); }
+  .rp-line   { width: 3px; height: 32px; background: var(--green); border-radius: 2px; flex-shrink: 0; }
+  .rp-body   { flex: 1; min-width: 0; }
+  .rp-label  { display: block; font-size: 11px; color: var(--green); font-weight: 600; }
+  .rp-text   { display: block; font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rp-close  { background: none; border: none; font-size: 16px; color: var(--text-light); cursor: pointer; padding: 2px 6px; border-radius: 50%; }
+  .rp-close:hover { background: var(--main-bg); color: var(--text-primary); }
+
+  /* ── CHAT INPUT ──────────────────────────────────────────────────────── */
+  .chat-input-area  { background: white; border-top: 1px solid var(--border); padding: 10px 14px; display: flex; align-items: flex-end; gap: 8px; }
+  .media-upload-btn { width: 36px; height: 36px; border: none; background: var(--main-bg); border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); transition: all .15s; flex-shrink: 0; }
+  .media-upload-btn:hover { background: var(--border); color: var(--green); }
+  .media-upload-btn svg { width: 18px; height: 18px; }
+  .chat-input-wrap  { flex: 1; background: var(--main-bg); border-radius: 20px; padding: 8px 14px; display: flex; align-items: center; gap: 8px; }
+  .chat-input-wrap textarea { border: none; background: transparent; outline: none; font-size: 13.5px; resize: none; flex: 1; font-family: inherit; max-height: 100px; line-height: 1.5; }
+
+  /* ── Record button ────────────────────────────────────────────────────── */
+  .record-btn-wrap { position: relative; flex-shrink: 0; }
+  .record-btn {
+    width: 36px; height: 36px; border: none; background: var(--main-bg);
+    border-radius: 50%; cursor: pointer; display: flex; align-items: center;
+    justify-content: center; color: var(--text-secondary); transition: all .15s;
+    user-select: none; -webkit-user-select: none;
+  }
+  .record-btn:hover { background: var(--border); color: var(--green); }
+  .record-btn.recording { background: #fdecea; color: #e53935; animation: rec-pulse .7s ease-in-out infinite; }
+  @keyframes rec-pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(229,57,53,.3); }
+    50%      { box-shadow: 0 0 0 7px rgba(229,57,53,0); }
+  }
+  .record-btn svg { width: 18px; height: 18px; pointer-events: none; }
+  .record-timer { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 11px; color: #e53935; font-weight: 600; white-space: nowrap; background: white; padding: 1px 4px; border-radius: 4px; box-shadow: var(--shadow); display: none; }
+  .record-btn.recording + .record-timer { display: block; }
+
+  /* ── Send button ─────────────────────────────────────────────────────── */
+  .send-btn { width: 36px; height: 36px; background: var(--green); border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; transition: all .15s; flex-shrink: 0; }
+  .send-btn:hover { background: var(--green-dark); }
+  .send-btn svg { width: 16px; height: 16px; }
+
+  /* ── Media Preview ───────────────────────────────────────────────────── */
+  .media-preview { padding: 8px 16px; background: white; border-top: 1px solid var(--border); display: none; align-items: center; gap: 12px; }
+  .media-preview.show { display: flex; }
+  .media-preview-info { flex: 1; font-size: 12px; color: var(--text-secondary); }
+  .remove-media { background: none; border: none; cursor: pointer; color: #ef4444; font-size: 18px; padding: 0; }
+
+  /* ── Media type menu ─────────────────────────────────────────────────── */
+  .media-type-menu { position: absolute; bottom: 70px; left: 14px; background: white; border-radius: var(--radius); box-shadow: var(--shadow-md); border: 1px solid var(--border); padding: 8px; display: none; z-index: 50; }
+  .media-type-menu.show { display: block; }
+  .media-type-option { display: flex; align-items: center; gap: 10px; padding: 8px 14px; cursor: pointer; border-radius: var(--radius-sm); font-size: 13px; color: var(--text-secondary); transition: background .1s; }
+  .media-type-option:hover { background: var(--main-bg); color: var(--text-primary); }
+  .media-type-option svg { width: 16px; height: 16px; }
+
+  /* ── Loading / toast ─────────────────────────────────────────────────── */
+  .loading { display: flex; align-items: center; justify-content: center; padding: 20px; color: var(--text-light); font-size: 13px; }
+  .spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin .6s linear infinite; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .toast { position: fixed; bottom: 24px; right: 24px; background: #1f2937; color: white; padding: 12px 18px; border-radius: var(--radius-sm); font-size: 13px; z-index: 999; transform: translateY(60px); opacity: 0; transition: all .3s; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { background: var(--green); }
+  .toast.error   { background: #ef4444; }
+  .toast.info    { background: #3b82f6; }
+
+  /* ── Message Status Ticks ──────────────────────────────────────────── */
+  .msg-ticks { font-size: 11px; font-weight: 700; letter-spacing: -1px; margin-left: 2px; }
+  .msg-ticks.sent      { color: #9ca3af; }
+  .msg-ticks.delivered  { color: #9ca3af; }
+  .msg-ticks.read       { color: #53bdeb; }
+
+  /* ── Star button ───────────────────────────────────────────────────── */
+  .star-btn-inline {
+    background: none; border: none; font-size: 14px; cursor: pointer;
+    color: #d1d5db; padding: 0 2px; opacity: 0; transition: all .15s;
+  }
+  .msg-bubble:hover .star-btn-inline { opacity: 1; }
+  .star-btn-inline.starred { color: #f59e0b !important; opacity: 1; }
+  .star-btn-inline:hover { color: #f59e0b; }
+
+  /* ── Unread Separator ──────────────────────────────────────────────── */
+  .unread-separator {
+    display: flex; align-items: center; gap: 10px; margin: 10px 0;
+  }
+  .unread-separator::before,
+  .unread-separator::after {
+    content: ''; flex: 1; height: 1px; background: #25D366;
+  }
+  .unread-separator span {
+    font-size: 11px; color: #25D366; font-weight: 600;
+    background: #e8faf0; padding: 3px 12px; border-radius: 12px; white-space: nowrap;
+  }
+
+  /* ── Scroll to bottom FAB ──────────────────────────────────────────── */
+  .scroll-bottom-btn {
+    position: absolute; bottom: 80px; right: 20px; z-index: 40;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: white; border: 1px solid var(--border);
+    box-shadow: var(--shadow-md); cursor: pointer;
+    display: none; align-items: center; justify-content: center;
+    color: var(--text-secondary); font-size: 16px; transition: all .15s;
+  }
+  .scroll-bottom-btn:hover { background: var(--green); color: white; border-color: var(--green); }
+
+  /* ── Star Filter button in header ──────────────────────────────────── */
+  .star-filter-btn {
+    width: 34px; height: 34px; border: none; background: var(--main-bg);
+    border-radius: var(--radius-sm); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-secondary); font-size: 16px; transition: all .15s;
+  }
+  .star-filter-btn:hover { background: var(--border); color: #f59e0b; }
+  .star-filter-btn.active-filter { background: #fef3c7; color: #f59e0b; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">
+    <img src="assets/images/logo.jpeg" style="width:38px;height:38px;border-radius:10px;object-fit:cover;flex-shrink:0;" alt="">
+    <span style="font-weight:700;font-size:15px;letter-spacing:-.3px;">Raja Cloud</span>
+  </div>
+  <nav>
+    <a href="dashboard.html">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a href="inbox.html" class="active">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      Inbox
+      <span class="nav-badge" id="nav-unread" style="display:none">0</span>
+    </a>
+    <a href="contacts.html">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      Contacts
+    </a>
+    <a href="campaigns.html">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      Campaigns
+    </a>
+    <a href="bot-replies.html">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      Bot Replies
+    </a>
+    <a href="templates.html">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      Templates
+    </a>
+    <a href="analytics.html">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Analytics
+    </a>
+    <a href="team.html">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      Team
+    </a>
+    <a href="message-log.html">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Message Log
+    </a>
+    <a href="subscriptions.html">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      Subscriptions
+    </a>
+    <a href="whatsapp-api.html">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+      WhatsApp API
+    </a>
+    <a href="settings.html">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Settings
+    </a>
+  </nav>
+  <div class="user-info">
+    <div class="user-avatar" id="user-avatar">K</div>
+    <div class="user-details">
+      <div class="name"  id="user-name">Business</div>
+      <div class="email" id="user-email">user@example.com</div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <h2>💬 WhatsApp Inbox</h2>
+    <div class="topbar-right">
+      <div class="search-box">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="globalSearch" placeholder="Search conversations...">
+      </div>
+    </div>
+  </div>
+
+  <div class="chat-layout">
+
+    <!-- Conversations List -->
+    <div class="conv-list">
+      <div class="conv-header">
+        <h3>Conversations</h3>
+        <div class="conv-search">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="convSearch" placeholder="Search..." oninput="filterConversations(this.value)">
+        </div>
+      </div>
+      <div class="conv-items" id="convList">
+        <div class="loading"><div class="spinner"></div> Loading...</div>
+      </div>
+    </div>
+
+    <!-- Chat Window -->
+    <div class="chat-window" id="chatWindow">
+      <div class="chat-empty" id="chatEmpty">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        <h3>Select a conversation</h3>
+        <p>Choose a contact from the left to start chatting</p>
+      </div>
+
+      <!-- Active Chat -->
+      <div id="activeChat" style="display:none; flex-direction:column; flex:1; overflow:hidden;">
+
+        <!-- Chat header -->
+        <div class="chat-header">
+          <div class="chat-header-avatar" id="chatAvatar">?</div>
+          <div class="chat-header-info">
+            <div class="name"  id="chatName">—</div>
+            <div class="phone" id="chatPhone">—</div>
+          </div>
+          <div class="chat-header-actions">
+            <button class="icon-btn-sm" title="Copy Chat" onclick="copyChatHistory()">📋</button>
+            <button class="icon-btn-sm" title="Delete Chat" onclick="deleteConversation()" style="color:#ef4444;">🗑️</button>
+            <button class="star-filter-btn" id="starFilterBtn" title="Starred Messages" onclick="toggleStarredFilter()">★</button>
+            <button class="icon-btn-sm" title="Refresh" onclick="loadMessages(currentPhone, true)">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Messages -->
+        <div class="chat-messages" id="chatMessages" style="position:relative;"></div>
+
+        <!-- Scroll to bottom -->
+        <button class="scroll-bottom-btn" id="scrollToBottomBtn" onclick="scrollToBottom()" title="Scroll to bottom">↓</button>
+
+        <!-- Media Preview -->
+        <div class="media-preview" id="mediaPreview">
+          <div id="mediaThumb"></div>
+          <div class="media-preview-info" id="mediaInfo">File selected</div>
+          <button class="remove-media" onclick="removeMedia()">✕</button>
+        </div>
+
+        <!-- ★ REPLY PREVIEW BAR ★ -->
+        <div id="reply-preview-bar" style="display:none;" class="reply-preview-bar">
+          <span class="rp-line"></span>
+          <div class="rp-body">
+            <span class="rp-label">Replying to</span>
+            <span id="reply-preview-text" class="rp-text"></span>
+          </div>
+          <button class="rp-close" onclick="cancelReply()" title="Cancel reply">✕</button>
+        </div>
+
+        <!-- ★ INPUT BAR ★ -->
+        <div class="chat-input-area" style="position:relative;">
+
+          <!-- Attach button -->
+          <button class="media-upload-btn" onclick="toggleMediaMenu()" title="Send media">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+          </button>
+
+          <!-- Media type dropdown -->
+          <div class="media-type-menu" id="mediaTypeMenu">
+            <div class="media-type-option" onclick="triggerFileInput('image')">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> Image
+            </div>
+            <div class="media-type-option" onclick="triggerFileInput('video')">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg> Video
+            </div>
+            <div class="media-type-option" onclick="triggerFileInput('document')">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Document
+            </div>
+          </div>
+
+          <!-- Text input -->
+          <div class="chat-input-wrap">
+            <textarea id="msgInput" placeholder="Type a message..." rows="1"
+                      onkeydown="handleEnter(event)" oninput="autoResize(this)"></textarea>
+          </div>
+
+          <!-- ★ VOICE RECORD BUTTON (press & hold) ★ -->
+          <div class="record-btn-wrap">
+            <button id="record-btn"
+                    class="record-btn"
+                    title="Hold to record voice"
+                    onmousedown="startRecording()"
+                    onmouseup="stopRecording()"
+                    ontouchstart="startRecording(); event.preventDefault();"
+                    ontouchend="stopRecording(); event.preventDefault();">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="23"/>
+                <line x1="8"  y1="23" x2="16" y2="23"/>
+              </svg>
+            </button>
+            <span id="record-timer" class="record-timer"></span>
+          </div>
+
+          <!-- Send button -->
+          <button class="send-btn" onclick="sendMessage()">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+
+      </div><!-- /activeChat -->
+    </div><!-- /chat-window -->
+  </div><!-- /chat-layout -->
+</div><!-- /main -->
+
+<!-- Hidden file inputs -->
+<input type="file" id="fileImage"    accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleFileSelect(this,'image')">
+<input type="file" id="fileVideo"    accept="video/mp4,video/3gpp"           style="display:none" onchange="handleFileSelect(this,'video')">
+<input type="file" id="fileAudio"    accept="audio/*"                         style="display:none" onchange="handleFileSelect(this,'audio')">
+<input type="file" id="fileDocument" accept=".pdf,.doc,.docx"                style="display:none" onchange="handleFileSelect(this,'document')">
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/js/api.js"></script>
+<script src="assets/js/inbox.js"></script>
+</body>
+</html>

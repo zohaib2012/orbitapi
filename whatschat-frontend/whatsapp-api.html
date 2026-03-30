@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WhatsApp API — WhatsChat AI</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: #f4f6f8; display: flex; min-height: 100vh; }
+
+  /* SIDEBAR */
+  .sidebar { width: 220px; background: white; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; position: fixed; height: 100vh; z-index: 100; }
+  .sidebar-logo { display: flex; align-items: center; gap: 10px; padding: 20px 18px; border-bottom: 1px solid #f3f4f6; }
+  .logo-icon { width: 34px; height: 34px; background: #25D366; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .logo-text { font-size: 14px; font-weight: 700; }
+  .nav { flex: 1; padding: 12px 10px; overflow-y: auto; }
+  .nav a { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #6b7280; font-size: 13.5px; font-weight: 500; margin-bottom: 2px; transition: all .15s; }
+  .nav a:hover { background: #f9fafb; color: #111827; }
+  .nav a.active { background: #f0fdf4; color: #16a34a; font-weight: 600; }
+  .nav a svg { flex-shrink: 0; }
+  .sidebar-user { padding: 14px 16px; border-top: 1px solid #f3f4f6; display: flex; align-items: center; gap: 10px; }
+  .user-avatar { width: 32px; height: 32px; background: #25D366; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+  .user-name { font-size: 12.5px; font-weight: 600; }
+  .user-email { font-size: 11px; color: #9ca3af; }
+
+  /* MAIN */
+  .main { margin-left: 220px; flex: 1; }
+  .topbar { background: white; border-bottom: 1px solid #e5e7eb; padding: 14px 28px; display: flex; justify-content: flex-end; align-items: center; position: sticky; top: 0; z-index: 50; }
+  .connect-btn { display: flex; align-items: center; gap: 7px; background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; color: #111827; }
+  .connect-btn:hover { background: #f9fafb; }
+  .content { padding: 28px; max-width: 900px; }
+  .page-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .page-sub { color: #6b7280; font-size: 13.5px; margin-bottom: 28px; }
+
+  .card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+  .card-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+  .card-sub { font-size: 13px; color: #6b7280; margin-bottom: 20px; }
+
+  /* Status badge */
+  .status-box { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-radius: 10px; margin-bottom: 20px; }
+  .status-box.connected { background: #f0fdf4; border: 1px solid #bbf7d0; }
+  .status-box.disconnected { background: #fef2f2; border: 1px solid #fecaca; }
+  .status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .status-dot.on  { background: #25D366; }
+  .status-dot.off { background: #ef4444; }
+  .status-text { font-size: 13.5px; font-weight: 600; }
+
+  /* Form */
+  .form-group { margin-bottom: 16px; }
+  label { display: block; font-size: 12.5px; font-weight: 600; color: #6b7280; margin-bottom: 6px; }
+  input, textarea { width: 100%; padding: 10px 14px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; transition: border .15s; }
+  input:focus, textarea:focus { border-color: #25D366; }
+  .hint { font-size: 11.5px; color: #9ca3af; margin-top: 4px; }
+  .btn-primary { background: #25D366; color: white; border: none; border-radius: 8px; padding: 10px 22px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background .15s; }
+  .btn-primary:hover { background: #1ebe5a; }
+  .btn-danger { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 22px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+
+  /* Test send */
+  .row { display: flex; gap: 12px; }
+  .row input { flex: 1; }
+
+  /* Steps */
+  .steps { counter-reset: step; }
+  .step { display: flex; gap: 14px; margin-bottom: 18px; }
+  .step-num { width: 28px; height: 28px; background: #25D366; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+  .step-body h4 { font-size: 13.5px; font-weight: 600; margin-bottom: 4px; }
+  .step-body p { font-size: 13px; color: #6b7280; }
+  .step-body code { background: #f3f4f6; padding: 1px 6px; border-radius: 4px; font-family: 'DM Mono', monospace; font-size: 12px; }
+
+  .logout-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    color: #ef4444;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    margin-top: 4px;
+  }
+  .logout-btn:hover { background: #fef2f2; }
+  .logout-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <img src="assets/images/logo.jpeg" style="width:38px;height:38px;border-radius:10px;object-fit:cover;object-position:center;flex-shrink:0;" alt="">
+    <span class="logo-text" style="font-weight:700;font-size:15px;letter-spacing:-.3px;">Raja Cloud</span>
+  </div>
+  <nav class="nav" style="overflow-y:auto;">
+    <a href="dashboard.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Dashboard</a>
+    <a href="inbox.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg> Inbox</a>
+    <a href="contacts.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> Contacts</a>
+    <a href="campaigns.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Campaigns</a>
+    <a href="bot-replies.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4"/></svg> Bot Replies</a>
+    <a href="templates.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> Templates</a>
+    <a href="analytics.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Analytics</a>
+    <a href="team.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> Team</a>
+    <a href="message-log.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Message Log</a>
+    <a href="subscriptions.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> Subscriptions</a>
+    <a href="whatsapp-api.html" class="active"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg> WhatsApp API</a>
+    <a href="settings.html"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg> Settings</a>
+  </nav>
+  <div class="sidebar-user">
+    <div class="user-avatar" id="user-avatar">U</div>
+    <div><div class="user-name" id="user-name">My Business</div><div class="user-email" id="user-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="abded8ced9ebcec6cac2c785c8c4c6">[email&#160;protected]</a></div></div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <button class="connect-btn" id="connectBtn" onclick="toggleConnect()">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.37 18a19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 3.18 2 2 0 0 1 4.11 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      Connect WhatsApp
+    </button>
+  </div>
+
+  <div class="content">
+    <div class="page-title">WhatsApp API</div>
+    <p class="page-sub">Connect your WhatsApp Business account to send messages</p>
+
+    <!-- Status -->
+    <div class="status-box disconnected" id="statusBox">
+      <div class="status-dot off" id="statusDot"></div>
+      <span class="status-text" id="statusText">Not Connected</span>
+    </div>
+
+    <!-- Connect Form -->
+    <div class="card" id="connectForm">
+      <div class="card-title">🔗 Connect WhatsApp Business</div>
+      <p class="card-sub">Enter your Meta WhatsApp Business API credentials</p>
+
+      <div class="form-group">
+        <label>Phone Number ID</label>
+        <input type="text" id="phoneNumberId" placeholder="e.g. 123456789012345">
+        <div class="hint">Meta Business Manager → WhatsApp → API Setup → Phone Number ID</div>
+      </div>
+      <div class="form-group">
+        <label>Access Token</label>
+        <input type="password" id="accessToken" placeholder="EAAxxxxxxxxxxxxx...">
+        <div class="hint">Temporary or Permanent token from Meta Developer Console</div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn-primary" id="connectSubmitBtn" onclick="connectWhatsApp()">Connect WhatsApp</button>
+        <button class="btn-danger" id="disconnectBtn" style="display:none" onclick="disconnectWhatsApp()">Disconnect</button>
+      </div>
+    </div>
+
+    <!-- QR CODE TOGGLE BUTTON -->
+    <div style="margin-bottom:14px;">
+      <button onclick="toggleQR()" id="qrToggleBtn"
+              style="padding:9px 18px;background:white;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;color:#374151;display:flex;align-items:center;gap:8px;">
+        📱 WhatsApp Web QR Code (Personal Use)
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+    </div>
+
+    <!-- QR CODE SECTION -->
+    <div class="card" id="qrSection" style="display:none; margin-bottom:16px;">
+      <div class="card-title">📱 WhatsApp Web QR Code</div>
+      <p class="card-sub">QR code scan karein — sirf personal use ke liye (Business API alag hai)</p>
+      <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;margin-top:16px;">
+        <div style="text-align:center;">
+          <div id="qrCodeBox" style="width:200px;height:200px;background:#f9fafb;border:2px dashed #e5e7eb;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:13px;color:#9ca3af;">
+            ⏳ Loading...
+          </div>
+          <button onclick="refreshQR()" style="margin-top:10px;padding:7px 16px;background:white;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">
+            🔄 Refresh QR
+          </button>
+        </div>
+        <div style="flex:1;min-width:200px;">
+          <div style="font-size:13.5px;font-weight:600;margin-bottom:10px;">QR Code kaise use karein:</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;gap:10px;font-size:13px;color:#6b7280;"><span style="font-weight:700;color:#25D366;">1.</span> Apne phone pe WhatsApp kholo</div>
+            <div style="display:flex;gap:10px;font-size:13px;color:#6b7280;"><span style="font-weight:700;color:#25D366;">2.</span> Settings → Linked Devices → Link a Device</div>
+            <div style="display:flex;gap:10px;font-size:13px;color:#6b7280;"><span style="font-weight:700;color:#25D366;">3.</span> Yeh QR code scan karo</div>
+          </div>
+          <div style="margin-top:14px;background:#fff8ed;border:1.5px solid #fed7aa;border-radius:8px;padding:12px;font-size:12.5px;color:#92400e;line-height:1.6;">
+            ⚠️ <strong>Note:</strong> Yeh WhatsApp Web (personal) connection hai. Bulk campaigns ke liye Meta Business API credentials upar enter karein.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Test Send -->
+    <div class="card" id="testSendCard" style="display:none">
+      <div class="card-title">📤 Test Message</div>
+      <p class="card-sub">Send a test message to verify your connection</p>
+      <div class="form-group">
+        <label>Phone Number (with country code)</label>
+        <div class="row">
+          <input type="text" id="testPhone" placeholder="+92 300 1234567">
+          <button class="btn-primary" id="sendTestBtn" onclick="sendTestMsg()">Send Test</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Message</label>
+        <textarea id="testMessage" rows="3" placeholder="Hello! This is a test message from WhatsChat AI.">Hello! This is a test message from WhatsChat AI. 👋</textarea>
+      </div>
+    </div>
+
+    <!-- Setup Guide -->
+    <div class="card">
+      <div class="card-title">📖 How to get API credentials?</div>
+      <p class="card-sub">Follow these steps to get your WhatsApp Business API access</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h4>Meta Developer Account banao</h4>
+            <p>Go to <code>developers.facebook.com</code> and create a developer account</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h4>App create karo</h4>
+            <p>Create a new app → Choose "Business" type → Add WhatsApp product</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h4>Phone Number add karo</h4>
+            <p>WhatsApp → API Setup → Add phone number → Verify with OTP</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <h4>Credentials copy karo</h4>
+            <p>Copy <code>Phone Number ID</code> and generate <code>Access Token</code> — paste above</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <h4>Webhook setup karo</h4>
+            <p>Webhook URL: <code id="webhookUrl">https://api.rajacloud.online/api/whatsapp/webhook</code></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="assets/js/api.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  Auth.requireAuth();
+  fillSidebarUser();
+  await checkStatus();
+});
+
+async function checkStatus() {
+  try {
+    const s = await WhatsApp.getStatus();
+    updateUI(s.connected);
+  } catch(e) { updateUI(false); }
+}
+
+function updateUI(connected) {
+  const box  = document.getElementById("statusBox");
+  const dot  = document.getElementById("statusDot");
+  const text = document.getElementById("statusText");
+  const disconnBtn = document.getElementById("disconnectBtn");
+  const testCard   = document.getElementById("testSendCard");
+  const topBtn     = document.getElementById("connectBtn");
+
+  if (connected) {
+    box.className  = "status-box connected";
+    dot.className  = "status-dot on";
+    text.textContent = "✓ WhatsApp Connected";
+    disconnBtn.style.display = "inline-block";
+    testCard.style.display   = "block";
+    topBtn.style.background  = "#f0fdf4";
+    topBtn.style.color       = "#16a34a";
+    topBtn.innerHTML         = `✓ WhatsApp Connected`;
+    document.getElementById("phoneNumberId").disabled = true;
+    document.getElementById("accessToken").disabled   = true;
+    document.getElementById("connectSubmitBtn").style.display = "none";
+  } else {
+    box.className  = "status-box disconnected";
+    dot.className  = "status-dot off";
+    text.textContent = "Not Connected";
+    disconnBtn.style.display = "none";
+    testCard.style.display   = "none";
+    document.getElementById("phoneNumberId").disabled = false;
+    document.getElementById("accessToken").disabled   = false;
+    document.getElementById("connectSubmitBtn").style.display = "inline-block";
+  }
+}
+
+async function connectWhatsApp() {
+  const pid = document.getElementById("phoneNumberId").value.trim();
+  const tok = document.getElementById("accessToken").value.trim();
+  const btn = document.getElementById("connectSubmitBtn");
+  if (!pid || !tok) { showToast("Phone Number ID aur Access Token zaroori hain", "error"); return; }
+  setLoading(btn, true);
+  try {
+    await WhatsApp.connect(pid, tok);
+    showToast("WhatsApp connected ✅");
+    await checkStatus();
+  } catch(e) { showToast(e.message||"Connection failed","error"); }
+  finally { setLoading(btn, false); }
+}
+
+async function disconnectWhatsApp() {
+  if (!confirm("WhatsApp disconnect karna chahte ho?")) return;
+  try {
+    await WhatsApp.disconnect();
+    showToast("Disconnected");
+    await checkStatus();
+  } catch(e) { showToast(e.message||"Error","error"); }
+}
+
+// ── SEND TEST MESSAGE ─────────────────────────────────────────
+async function sendTestMsg() {
+  const toRaw = document.getElementById("testPhone")?.value.trim();
+  const msg   = document.getElementById("testMessage")?.value.trim();
+  const btn   = document.getElementById("sendTestBtn");
+
+  if (!toRaw) { showToast("Phone number daalo", "error"); return; }
+  if (!msg)   { showToast("Message daalo", "error"); return; }
+
+  // Number clean karo — 03001234567 → 923001234567
+  let to = toRaw.replace(/\s/g, "").replace(/-/g, "").trim();
+  if (to.startsWith("+")) to = to.substring(1);   // +92... → 92...
+  if (to.startsWith("00")) to = to.substring(2);  // 0092... → 92...
+  if (to.startsWith("0")) to = "92" + to.substring(1); // 03... → 923...
+
+  setLoading(btn, true);
+  try {
+    const result = await WhatsApp.sendTest(to, msg);
+    showToast("✅ Message bhej diya! ID: " + (result.message_id || "sent"), "success");
+  } catch(e) {
+    const errMsg = e.message || "Message send nahi hua";
+    // Show specific error
+    if (errMsg.includes("live")) {
+      showToast("❌ Live WhatsApp API chahiye — test number sirf apne registered number pe kaam karta hai", "error");
+    } else if (errMsg.includes("token")) {
+      showToast("❌ Access Token expire ho gaya — Meta se naya token lo", "error");
+    } else {
+      showToast("❌ " + errMsg, "error");
+    }
+  }
+  finally { setLoading(btn, false); }
+}
+
+function showToast(msg, type="success") {
+  // Use api.js showToast if available, else make our own
+  const existing = document.getElementById("wa-toast");
+  if (existing) existing.remove();
+  const t = document.createElement("div");
+  t.id = "wa-toast";
+  t.textContent = msg;
+  t.style.cssText = `position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:8px;font-size:13.5px;font-weight:500;z-index:999;background:${type==="error"?"#ef4444":"#111827"};color:white;max-width:400px;box-shadow:0 4px 12px rgba(0,0,0,0.2)`;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+
+// ── QR CODE ──────────────────────────────────────────────────
+function toggleQR() {
+  const section = document.getElementById("qrSection");
+  const isHidden = section.style.display === "none" || section.style.display === "";
+  section.style.display = isHidden ? "block" : "none";
+  if (isHidden) refreshQR();
+}
+
+function refreshQR() {
+  const box = document.getElementById("qrCodeBox");
+  if (!box) return;
+  box.innerHTML = `<div style="text-align:center;color:#9ca3af;font-size:12px;">
+    <div style="font-size:30px;margin-bottom:8px;">⏳</div>Generating QR...
+  </div>`;
+  setTimeout(() => {
+    const demoText = `WhatsChat-AI-QR-${Date.now()}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(demoText)}&bgcolor=ffffff&color=111827&margin=10`;
+    box.innerHTML = `
+      <div style="text-align:center;">
+        <img src="${qrUrl}" style="width:180px;height:180px;border-radius:8px;display:block;margin:0 auto;"
+             alt="WhatsApp QR"
+             onerror="this.parentElement.innerHTML='<p style=color:#ef4444;font-size:12px;>QR load nahi hua — internet check karein</p>'">
+        <div style="font-size:10px;color:#9ca3af;margin-top:8px;line-height:1.5;">
+          Demo QR — Real QR ke liye<br>whatsapp-web.js backend mein add karna hoga
+        </div>
+      </div>`;
+  }, 1200);
+}
+</script>
+</body>
+</html>

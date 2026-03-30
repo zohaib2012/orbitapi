@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raja Cloud — Login</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:linear-gradient(135deg,#f0fdf4 0%,#f4f6f8 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+.wrapper{width:100%;max-width:440px;}
+.logo{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:28px;}
+.logo img{width:44px;height:44px;border-radius:12px;object-fit:cover;}
+.logo-name{font-size:20px;font-weight:700;color:#111827;}
+.card{background:white;border-radius:16px;border:1px solid #e5e7eb;padding:36px;box-shadow:0 4px 24px rgba(0,0,0,.08);}
+.tab-row{display:flex;border-bottom:2px solid #f3f4f6;margin-bottom:24px;}
+.tab-btn{flex:1;padding:10px;border:none;background:none;font-size:13.5px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:#9ca3af;border-bottom:2px solid transparent;margin-bottom:-2px;}
+.tab-btn.active{color:#25D366;border-bottom-color:#25D366;}
+.form-group{margin-bottom:16px;}
+label{display:block;font-size:12.5px;font-weight:600;color:#374151;margin-bottom:6px;}
+input{width:100%;padding:11px 14px;border:1.5px solid #e5e7eb;border-radius:9px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;}
+input:focus{border-color:#25D366;}
+.btn-main{width:100%;padding:12px;border:none;border-radius:9px;font-size:14.5px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;color:white;background:#25D366;margin-top:4px;}
+.btn-main:hover{background:#1ebe5a;}
+.btn-main:disabled{opacity:.6;cursor:not-allowed;}
+.error-msg{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:13px;color:#991b1b;margin-bottom:14px;display:none;}
+.success-msg{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;font-size:13px;color:#166534;margin-bottom:14px;display:none;}
+.form-section{display:none;}
+.form-section.active{display:block;}
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <div class="logo">
+    <img src="../assets/images/logo.jpeg" onerror="this.style.display='none'" alt="Logo">
+    <span class="logo-name">Raja Cloud</span>
+  </div>
+
+  <div class="card">
+    <div class="tab-row">
+      <button class="tab-btn active" id="loginTab"    onclick="switchTab('login')">Login</button>
+      <button class="tab-btn"        id="registerTab" onclick="switchTab('register')">Register</button>
+    </div>
+
+    <div id="errorMsg"   class="error-msg"></div>
+    <div id="successMsg" class="success-msg"></div>
+
+    <!-- LOGIN -->
+    <div class="form-section active" id="loginForm">
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="loginEmail" placeholder="you@business.com" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="btn-main" id="loginBtn" onclick="doLogin()">Login</button>
+    </div>
+
+    <!-- REGISTER -->
+    <div class="form-section" id="registerForm">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="regName" placeholder="Ahmed Ali">
+      </div>
+      <div class="form-group">
+        <label>Business Name</label>
+        <input type="text" id="regBusiness" placeholder="My Business">
+      </div>
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="regEmail" placeholder="you@business.com">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="regPass" placeholder="Min 8 characters">
+      </div>
+      <button class="btn-main" id="registerBtn" onclick="doRegister()">Create Account</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API = 'https://api.rajacloud.online/api';
+
+// AUTO LOGIN — sirf normal user check
+(function() {
+  const tk   = localStorage.getItem('wc_token');
+  const user = JSON.parse(localStorage.getItem('wc_user') || 'null');
+  if (tk && user) { window.location.href = '../dashboard.html'; }
+})();
+
+function switchTab(tab) {
+  document.getElementById('loginForm').classList.toggle('active',    tab === 'login');
+  document.getElementById('registerForm').classList.toggle('active', tab === 'register');
+  document.getElementById('loginTab').classList.toggle('active',     tab === 'login');
+  document.getElementById('registerTab').classList.toggle('active',  tab === 'register');
+  clearErrors();
+}
+
+function showError(msg)   { const el = document.getElementById('errorMsg');   el.textContent = msg; el.style.display = 'block'; }
+function showSuccess(msg) { const el = document.getElementById('successMsg'); el.textContent = msg; el.style.display = 'block'; }
+function clearErrors()    {
+  ['errorMsg','successMsg'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = 'none'; });
+}
+function setLoading(btn, loading) {
+  btn.disabled = loading; btn.style.opacity = loading ? '0.7' : '1';
+  if (loading) btn.dataset.orig = btn.textContent;
+  btn.textContent = loading ? 'Please wait...' : btn.dataset.orig;
+}
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+  const btn   = document.getElementById('loginBtn');
+  clearErrors();
+  if (!email || !pass) { showError('Email aur password zaroori hain'); return; }
+
+  setLoading(btn, true);
+  try {
+    const res  = await fetch(`${API}/auth/login`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email, password: pass})
+    });
+    const data = await res.json();
+    if (!res.ok) { showError(data.detail || 'Email ya password galat hai'); return; }
+
+    localStorage.setItem('wc_token', data.access_token);
+    localStorage.setItem('wc_user',  JSON.stringify(data.user));
+    window.location.href = '../dashboard.html';
+
+  } catch(e) { showError('Server se connect nahi hua'); }
+  finally    { setLoading(btn, false); }
+}
+
+async function doRegister() {
+  const name     = document.getElementById('regName').value.trim();
+  const business = document.getElementById('regBusiness').value.trim();
+  const email    = document.getElementById('regEmail').value.trim();
+  const pass     = document.getElementById('regPass').value;
+  const btn      = document.getElementById('registerBtn');
+  clearErrors();
+  if (!name || !email || !pass) { showError('Naam, email aur password zaroori hain'); return; }
+  if (pass.length < 8)          { showError('Password 8 characters ka hona chahiye'); return; }
+
+  setLoading(btn, true);
+  try {
+    const res  = await fetch(`${API}/auth/register`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({full_name: name, business_name: business || name, email, password: pass})
+    });
+    const data = await res.json();
+    if (!res.ok) { showError(data.detail || 'Registration failed'); return; }
+
+    localStorage.setItem('wc_token', data.access_token);
+    localStorage.setItem('wc_user',  JSON.stringify(data.user));
+    showSuccess('✅ Account ban gaya! Dashboard per ja rahe hain...');
+    setTimeout(() => { window.location.href = '../dashboard.html'; }, 800);
+
+  } catch(e) { showError('Server se connect nahi hua'); }
+  finally    { setLoading(btn, false); }
+}
+</script>
+</body>
+</html>

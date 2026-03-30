@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subscription Plans — Raja Cloud</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#25D366;--green-dark:#1ebe5a;--green-light:#f0fdf4;
+  --bg:#f4f6f8;--card:#ffffff;
+  --text:#111827;--text-secondary:#6b7280;
+  --border:#e5e7eb;--shadow:0 1px 3px rgba(0,0,0,.07);
+  --radius:14px;--radius-sm:9px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh;display:flex;}
+
+/* SIDEBAR — WHITE THEME */
+.sidebar{width:230px;background:#ffffff;min-height:100vh;display:flex;flex-direction:column;padding:0;flex-shrink:0;position:fixed;top:0;left:0;bottom:0;z-index:50;border-right:1px solid var(--border);box-shadow:0 0 10px rgba(0,0,0,.05);}
+.sidebar-logo{display:flex;align-items:center;gap:10px;padding:20px 20px 16px;}
+.sidebar-logo img{width:36px;height:36px;border-radius:10px;object-fit:cover;}
+.sidebar-logo span{font-size:15px;font-weight:700;color:var(--text);}
+.sidebar-divider{height:1px;background:var(--border);margin:0 16px 12px;}
+.nav-label{font-size:10px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.7px;padding:8px 20px 6px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;color:var(--text-secondary);text-decoration:none;font-size:13.5px;font-weight:500;border-radius:8px;margin:1px 8px;transition:all .15s;cursor:pointer;}
+.nav-item:hover{background:#f3f4f6;color:var(--text);}
+.nav-item.active{background:#f0fdf4;color:var(--green);font-weight:600;}
+.nav-item .icon{width:18px;text-align:center;font-size:15px;}
+.sidebar-bottom{margin-top:auto;padding:16px;}
+.user-card{background:#f9fafb;border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px;}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:white;flex-shrink:0;}
+.user-info{overflow:hidden;}
+.user-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.user-plan{font-size:11px;color:var(--text-secondary);}
+.logout-link{display:flex;align-items:center;gap:8px;padding:9px 16px;color:#6b7280;font-size:13px;cursor:pointer;text-decoration:none;margin:4px 8px 0;border-radius:8px;}
+.logout-link:hover{color:#ef4444;background:#fef2f2;}
+
+/* MAIN */
+.main{margin-left:230px;flex:1;padding:36px 40px;min-height:100vh;}
+.page-title{font-size:22px;font-weight:700;margin-bottom:4px;}
+.page-sub{font-size:14px;color:var(--text-secondary);margin-bottom:32px;}
+
+/* CURRENT PLAN BANNER */
+.current-banner{background:white;border-radius:var(--radius);border:1px solid var(--border);padding:20px 24px;margin-bottom:28px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow);}
+.current-banner.pending{border-color:#fbbf24;background:#fffbeb;}
+.current-banner.active{border-color:#25D366;background:#f0fdf4;}
+.current-banner.free{border-color:#e5e7eb;}
+.banner-left{display:flex;align-items:center;gap:14px;}
+.banner-icon{font-size:28px;}
+.banner-title{font-size:15px;font-weight:700;}
+.banner-sub{font-size:13px;color:var(--text-secondary);}
+.badge{display:inline-flex;align-items:center;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;}
+.badge-pending{background:#fef3c7;color:#92400e;}
+.badge-active{background:#dcfce7;color:#166534;}
+.badge-free{background:#f3f4f6;color:#6b7280;}
+
+/* PLANS GRID */
+.plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:32px;}
+
+.plan-card{background:white;border-radius:var(--radius);border:2px solid var(--border);padding:28px 24px;position:relative;transition:all .2s;display:flex;flex-direction:column;}
+.plan-card:hover{border-color:#d1d5db;box-shadow:0 4px 20px rgba(0,0,0,.08);}
+.plan-card.popular{border-color:var(--green);box-shadow:0 4px 24px rgba(37,211,102,.15);}
+.plan-card.current-plan{border-color:#3b82f6;background:#eff6ff;}
+
+.popular-tag{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--green);color:white;font-size:11px;font-weight:700;padding:4px 16px;border-radius:20px;letter-spacing:.3px;white-space:nowrap;}
+
+.plan-name{font-size:13px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+.plan-price{font-size:32px;font-weight:800;letter-spacing:-1px;margin-bottom:4px;}
+.plan-price span{font-size:14px;font-weight:400;color:var(--text-secondary);}
+.plan-desc{font-size:13px;color:var(--text-secondary);margin-bottom:20px;line-height:1.5;}
+
+.plan-features{list-style:none;margin-bottom:24px;flex:1;}
+.plan-features li{display:flex;align-items:flex-start;gap:8px;font-size:13px;padding:5px 0;color:#374151;}
+.plan-features li::before{content:'✓';color:var(--green);font-weight:700;margin-top:1px;flex-shrink:0;}
+
+.btn-choose{width:100%;padding:12px;border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;border:none;transition:all .2s;}
+.btn-choose.green{background:var(--green);color:white;}
+.btn-choose.green:hover{background:var(--green-dark);}
+.btn-choose.outline{background:white;color:var(--green);border:2px solid var(--green);}
+.btn-choose.outline:hover{background:var(--green-light);}
+.btn-choose.current{background:#eff6ff;color:#3b82f6;border:2px solid #3b82f6;cursor:default;}
+
+/* PAYMENT MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:white;border-radius:var(--radius);width:480px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.modal-header{padding:24px 24px 0;display:flex;justify-content:space-between;align-items:center;}
+.modal-title{font-size:18px;font-weight:700;}
+.modal-close{width:32px;height:32px;border:none;background:#f3f4f6;border-radius:50%;cursor:pointer;font-size:16px;}
+.modal-body{padding:20px 24px 28px;}
+
+.payment-info{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:16px;margin-bottom:20px;}
+.payment-info p{font-size:13.5px;color:#166534;margin-bottom:4px;}
+.payment-info strong{font-size:16px;color:#111827;display:block;margin-top:6px;}
+
+.upload-zone{border:2px dashed #d1d5db;border-radius:10px;padding:32px;text-align:center;cursor:pointer;margin-bottom:16px;transition:all .2s;}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--green);background:var(--green-light);}
+.upload-zone .icon{font-size:32px;margin-bottom:8px;}
+.upload-zone p{font-size:13.5px;color:var(--text-secondary);}
+.upload-zone small{font-size:12px;color:#9ca3af;}
+#ssPreview{display:none;width:100%;max-height:200px;object-fit:contain;border-radius:8px;border:1px solid var(--border);margin-bottom:10px;}
+
+.form-group{margin-bottom:16px;}
+.form-group label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:#374151;}
+.form-group textarea{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13.5px;font-family:'DM Sans',sans-serif;resize:vertical;outline:none;min-height:70px;}
+.form-group textarea:focus{border-color:var(--green);}
+
+.btn-submit{width:100%;padding:13px;background:var(--green);color:white;border:none;border-radius:var(--radius-sm);font-size:14.5px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.btn-submit:hover{background:var(--green-dark);}
+.btn-submit:disabled{opacity:.6;cursor:not-allowed;}
+
+.wa-divider{display:flex;align-items:center;gap:10px;margin:16px 0;color:#9ca3af;font-size:12px;}
+.wa-divider::before,.wa-divider::after{content:'';flex:1;height:1px;background:#e5e7eb;}
+.btn-wa{width:100%;padding:12px;background:#f0fdf4;color:#166534;border:1.5px solid #bbf7d0;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.btn-wa:hover{background:#dcfce7;}
+
+.error-msg{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:13px;color:#991b1b;margin-bottom:14px;display:none;}
+.success-msg{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;font-size:13px;color:#166534;margin-bottom:14px;display:none;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:var(--radius-sm);font-size:13.5px;font-weight:500;z-index:999;color:white;background:#111827;box-shadow:0 4px 12px rgba(0,0,0,.2);transform:translateY(100px);opacity:0;transition:all .3s;}
+.toast.show{transform:translateY(0);opacity:1;}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR — WHITE THEME -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <img src="assets/images/logo.jpeg" onerror="this.style.display='none'" alt="Logo">
+    <span>Raja Cloud</span>
+  </div>
+  <div class="sidebar-divider"></div>
+  <a href="dashboard.html"    class="nav-item"><span class="icon">📊</span> Dashboard</a>
+  <a href="inbox.html"        class="nav-item"><span class="icon">📥</span> Inbox</a>
+  <a href="contacts.html"     class="nav-item"><span class="icon">👥</span> Contacts</a>
+  <a href="campaigns.html"    class="nav-item"><span class="icon">📢</span> Campaigns</a>
+  <a href="chatbot.html"      class="nav-item"><span class="icon">🤖</span> Bot Replies</a>
+  <a href="templates.html"    class="nav-item"><span class="icon">📝</span> Templates</a>
+  <a href="analytics.html"    class="nav-item"><span class="icon">📈</span> Analytics</a>
+  <a href="team.html"         class="nav-item"><span class="icon">👤</span> Team</a>
+  <a href="message-log.html"  class="nav-item"><span class="icon">🗒️</span> Message Log</a>
+  <a href="subscriptions.html" class="nav-item active"><span class="icon">💳</span> Subscriptions</a>
+  <a href="whatsapp-api.html" class="nav-item"><span class="icon">📱</span> WhatsApp API</a>
+  <a href="settings.html"     class="nav-item"><span class="icon">⚙️</span> Settings</a>
+  <div class="sidebar-bottom">
+    <div class="user-card">
+      <div class="user-avatar" id="sidebarInitial">U</div>
+      <div class="user-info">
+        <div class="user-name"  id="sidebarName">Loading...</div>
+        <div class="user-plan"  id="sidebarPlan">Free</div>
+      </div>
+    </div>
+    <a class="logout-link" onclick="logout()">🚪 Logout</a>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="page-title">Subscription Plans</div>
+  <div class="page-sub">Apna plan choose karein aur WhatsApp marketing shuru karein</div>
+
+  <!-- CURRENT PLAN STATUS -->
+  <div class="current-banner free" id="currentBanner">
+    <div class="banner-left">
+      <div class="banner-icon">📦</div>
+      <div>
+        <div class="banner-title" id="bannerTitle">Free Plan</div>
+        <div class="banner-sub"  id="bannerSub">Upgrade karein features unlock karne ke liye</div>
+      </div>
+    </div>
+    <span class="badge badge-free" id="bannerBadge">Free</span>
+  </div>
+
+  <!-- PLANS -->
+  <div class="plans-grid">
+
+    <!-- STARTER -->
+    <div class="plan-card" id="card-starter">
+      <div class="plan-name">Starter</div>
+      <div class="plan-price">Rs.2,500<span>/mo</span></div>
+      <div class="plan-desc">Choti businesses ke liye perfect starting point</div>
+      <ul class="plan-features">
+        <li>1,000 Contacts</li>
+        <li>5,000 Messages / month</li>
+        <li>2 Team Members</li>
+        <li>1 Chatbot Flow</li>
+        <li>Basic Templates</li>
+        <li>Email Support</li>
+      </ul>
+      <button class="btn-choose outline" id="btn-starter" onclick="choosePlan('starter')">
+        Choose Starter
+      </button>
+    </div>
+
+    <!-- PROFESSIONAL -->
+    <div class="plan-card popular" id="card-professional">
+      <div class="popular-tag">⭐ Most Popular</div>
+      <div class="plan-name">Professional</div>
+      <div class="plan-price">Rs.4,000<span>/mo</span></div>
+      <div class="plan-desc">Growing businesses ke liye best value plan</div>
+      <ul class="plan-features">
+        <li>10,000 Contacts</li>
+        <li>50,000 Messages / month</li>
+        <li>10 Team Members</li>
+        <li>Unlimited Chatbot Flows</li>
+        <li>All Templates</li>
+        <li>Priority Support</li>
+      </ul>
+      <button class="btn-choose green" id="btn-professional" onclick="choosePlan('professional')">
+        Choose Professional
+      </button>
+    </div>
+
+    <!-- ENTERPRISE -->
+    <div class="plan-card" id="card-enterprise">
+      <div class="plan-name">Enterprise</div>
+      <div class="plan-price">Rs.8,000<span>/mo</span></div>
+      <div class="plan-desc">Large scale operations ke liye unlimited power</div>
+      <ul class="plan-features">
+        <li>Unlimited Contacts</li>
+        <li>Unlimited Messages</li>
+        <li>Unlimited Team Members</li>
+        <li>Unlimited Chatbot Flows</li>
+        <li>Custom Templates</li>
+        <li>Dedicated Support</li>
+      </ul>
+      <button class="btn-choose outline" id="btn-enterprise" onclick="choosePlan('enterprise')">
+        Choose Enterprise
+      </button>
+    </div>
+
+  </div>
+
+  <!-- PAYMENT INSTRUCTIONS -->
+  <div style="background:white;border-radius:var(--radius);border:1px solid var(--border);padding:24px;box-shadow:var(--shadow);">
+    <div style="font-size:15px;font-weight:700;margin-bottom:12px;">💳 Payment Instructions</div>
+    <div style="font-size:13.5px;color:#374151;line-height:1.8;">
+      1. <strong>Plan choose karein</strong> → Payment form khulega<br>
+      2. <strong>Nayapay</strong> par transfer karein: <strong>0335-0609753 (Raja Cloud)</strong> <strong>Usman Ali</strong><br>
+      3. Screenshot upload karein ya WhatsApp par bhejein<br>
+      4. Admin 24 ghante mein approve kar dega aur plan activate ho jayega
+    </div>
+  </div>
+</div>
+
+<!-- PAYMENT MODAL -->
+<div class="modal-overlay" id="payModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalPlanTitle">Plan Subscribe Karein</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="payment-info">
+        <p>📱 Neeche diye number par payment bhejein:</p>
+        <strong>Nayapay</strong> par transfer karein: <strong>0335-0609753 (Raja Cloud)</strong> <strong>Usman Ali</strong>
+        <p style="margin-top:6px;">Amount: <strong id="modalAmount"></strong></p>
+      </div>
+
+      <div id="formErrorMsg"   class="error-msg"></div>
+      <div id="formSuccessMsg" class="success-msg"></div>
+
+      <!-- Screenshot upload -->
+      <div class="form-group">
+        <label>Payment Screenshot Upload karein</label>
+        <input type="file" id="ssInput" accept="image/*" style="display:none" onchange="handleFile(this)">
+        <img id="ssPreview" alt="Screenshot preview">
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('ssInput').click()"
+          ondragover="event.preventDefault();this.classList.add('drag')"
+          ondragleave="this.classList.remove('drag')"
+          ondrop="event.preventDefault();this.classList.remove('drag');handleFile({files:event.dataTransfer.files})">
+          <div class="icon">📷</div>
+          <p>Screenshot click karein ya drag karein</p>
+          <small>JPG, PNG — max 5MB</small>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Notes (optional)</label>
+        <textarea id="payNotes" placeholder="Transaction ID ya koi aur info..."></textarea>
+      </div>
+
+      <button class="btn-submit" id="submitBtn" onclick="submitRequest()">
+        ✓ Request Submit Karein
+      </button>
+
+      <div class="wa-divider">ya</div>
+      <button class="btn-wa" onclick="sendWhatsApp()">
+        💬 WhatsApp par Screenshot Bhejein
+      </button>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'https://api.rajacloud.online/api';
+let selectedPlan = null;
+let screenshotBase64 = null;
+const planPrices = {starter: 'Rs.2,500', professional: 'Rs.4,000', enterprise: 'Rs.8,000'};
+
+function getToken() { return localStorage.getItem('wc_token') || localStorage.getItem('token'); }
+function getUser()  { return JSON.parse(localStorage.getItem('wc_user') || localStorage.getItem('user') || 'null'); }
+
+(function init() {
+  const token = getToken();
+  const user  = getUser();
+  if (!token || !user) {
+    window.location.href = 'auth/login.html';
+    return;
+  }
+  fillSidebar(user);
+  updateBanner(user);
+  updateButtons(user);
+})();
+
+function fillSidebar(user) {
+  const name = user.full_name || user.email || 'User';
+  document.getElementById('sidebarName').textContent    = name;
+  document.getElementById('sidebarInitial').textContent = name[0].toUpperCase();
+  document.getElementById('sidebarPlan').textContent    =
+    (user.plan && user.plan !== 'free') ? '✅ ' + capitalize(user.plan) : 'Free Plan';
+}
+
+function updateBanner(user) {
+  const banner = document.getElementById('currentBanner');
+  const title  = document.getElementById('bannerTitle');
+  const sub    = document.getElementById('bannerSub');
+  const badge  = document.getElementById('bannerBadge');
+  const plan   = user.plan || 'free';
+  const status = user.subscription_status || (plan !== 'free' ? 'active' : 'free');
+
+  if (status === 'pending') {
+    banner.className = 'current-banner pending';
+    title.textContent = capitalize(plan) + ' Plan — Pending Approval';
+    sub.textContent   = '⏳ Admin review kar raha hai. 24 ghante mein activate ho jayega.';
+    badge.className   = 'badge badge-pending';
+    badge.textContent = 'Pending';
+  } else if (plan !== 'free' && status === 'active') {
+    banner.className = 'current-banner active';
+    title.textContent = '✅ ' + capitalize(plan) + ' Plan — Active';
+    sub.textContent   = 'Aapka plan active hai. Sab features available hain.';
+    badge.className   = 'badge badge-active';
+    badge.textContent = 'Active';
+  } else {
+    banner.className = 'current-banner free';
+    title.textContent = 'Free Plan';
+    sub.textContent   = 'Upgrade karein tamam features unlock karne ke liye';
+    badge.className   = 'badge badge-free';
+    badge.textContent = 'Free';
+  }
+}
+
+function updateButtons(user) {
+  const plan   = user.plan || 'free';
+  const status = user.subscription_status || '';
+
+  ['starter', 'professional', 'enterprise'].forEach(p => {
+    const btn  = document.getElementById('btn-' + p);
+    const card = document.getElementById('card-' + p);
+
+    if (plan === p && status === 'active') {
+      btn.className   = 'btn-choose current';
+      btn.textContent = '✓ Current Plan';
+      btn.onclick     = null;
+      card.classList.add('current-plan');
+    } else if (plan === p && status === 'pending') {
+      btn.className   = 'btn-choose current';
+      btn.textContent = '⏳ Pending Approval';
+      btn.onclick     = null;
+    } else {
+      btn.className   = p === 'professional' ? 'btn-choose green' : 'btn-choose outline';
+      btn.textContent = 'Choose ' + capitalize(p);
+      btn.onclick     = () => choosePlan(p);
+      card.classList.remove('current-plan');
+    }
+  });
+}
+
+function choosePlan(plan) {
+  selectedPlan = plan;
+  screenshotBase64 = null;
+  document.getElementById('modalPlanTitle').textContent = capitalize(plan) + ' Plan — Payment';
+  document.getElementById('modalAmount').textContent    = planPrices[plan] + '/month';
+  document.getElementById('ssPreview').style.display = 'none';
+  document.getElementById('uploadZone').style.display = 'block';
+  document.getElementById('payNotes').value = '';
+  document.getElementById('formErrorMsg').style.display   = 'none';
+  document.getElementById('formSuccessMsg').style.display = 'none';
+  document.getElementById('payModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('payModal').classList.remove('open');
+}
+
+function handleFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) {
+    showFormError('File bari hai — 5MB se chhoti honi chahiye');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    screenshotBase64 = e.target.result;
+    const preview = document.getElementById('ssPreview');
+    preview.src           = screenshotBase64;
+    preview.style.display = 'block';
+    document.getElementById('uploadZone').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitRequest() {
+  const notes = document.getElementById('payNotes').value.trim();
+  const btn   = document.getElementById('submitBtn');
+
+  document.getElementById('formErrorMsg').style.display   = 'none';
+  document.getElementById('formSuccessMsg').style.display = 'none';
+
+  if (!selectedPlan) return;
+
+  btn.disabled    = true;
+  btn.textContent = 'Submitting...';
+
+  try {
+    const res = await fetch(`${API}/subscription-requests/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + getToken()
+      },
+      body: JSON.stringify({
+        plan: selectedPlan,
+        payment_method: 'whatsapp',
+        screenshot_base64: screenshotBase64 || null,
+        notes: notes || null
+      })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      showFormError(data.detail || 'Request submit nahi hua');
+      return;
+    }
+
+    document.getElementById('formSuccessMsg').textContent =
+      '✅ Request bhej di gayi! Admin 24 ghante mein approve karega.';
+    document.getElementById('formSuccessMsg').style.display = 'block';
+    document.getElementById('submitBtn').style.display = 'none';
+
+    const user = getUser();
+    user.plan = selectedPlan;
+    user.subscription_status = 'pending';
+    localStorage.setItem('wc_user', JSON.stringify(user));
+    localStorage.setItem('user',    JSON.stringify(user));
+
+    setTimeout(() => {
+      closeModal();
+      updateBanner(user);
+      updateButtons(user);
+      document.getElementById('submitBtn').style.display = 'block';
+    }, 2500);
+
+  } catch(e) {
+    showFormError('Server se connect nahi hua — backend check karein');
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = '✓ Request Submit Karein';
+  }
+}
+
+function sendWhatsApp() {
+  const msg = `Salam! Maine ${capitalize(selectedPlan)} plan ka payment kar diya hai. Amount: ${planPrices[selectedPlan]}. Screenshot attach kar raha hoon.`;
+  window.open('https://wa.me/923090005224?text=' + encodeURIComponent(msg), '_blank');
+}
+
+function showFormError(msg) {
+  const el = document.getElementById('formErrorMsg');
+  el.textContent  = msg;
+  el.style.display = 'block';
+}
+function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+function logout() {
+  localStorage.clear();
+  window.location.href = 'auth/login.html';
+}
+
+document.getElementById('payModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('payModal')) closeModal();
+});
+</script>
+</body>
+</html>

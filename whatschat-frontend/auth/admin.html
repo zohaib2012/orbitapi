@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raja Cloud — Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#25D366;--green-dark:#1ebe5a;--green-light:#f0fdf4;
+  --red:#ef4444;--red-light:#fef2f2;
+  --blue:#3b82f6;--blue-light:#eff6ff;
+  --yellow:#f59e0b;--yellow-light:#fffbeb;
+  --bg:#f4f6f8;--card:#ffffff;
+  --text:#111827;--text-secondary:#6b7280;--text-light:#9ca3af;
+  --border:#e5e7eb;--shadow:0 1px 3px rgba(0,0,0,0.07);
+  --radius:12px;--radius-sm:8px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh;}
+.topbar{background:#111827;padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.topbar-left{display:flex;align-items:center;gap:14px;}
+.admin-logo{width:36px;height:36px;border-radius:9px;object-fit:cover;}
+.admin-brand{font-size:16px;font-weight:700;color:white;letter-spacing:-.3px;}
+.admin-badge{background:var(--red);color:white;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.5px;}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.admin-email{font-size:13px;color:#9ca3af;}
+.logout-btn{padding:7px 16px;background:transparent;border:1px solid #374151;border-radius:var(--radius-sm);color:#9ca3af;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.logout-btn:hover{background:#1f2937;color:white;}
+.main{padding:32px;max-width:1200px;margin:0 auto;}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+.stat-card{background:var(--card);border-radius:var(--radius);padding:20px 24px;border:1px solid var(--border);box-shadow:var(--shadow);}
+.stat-label{font-size:12px;color:var(--text-secondary);font-weight:500;margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;}
+.stat-value{font-size:28px;font-weight:700;letter-spacing:-.5px;}
+.stat-value.green{color:var(--green);}
+.stat-value.red{color:var(--red);}
+.stat-value.blue{color:var(--blue);}
+.stat-value.yellow{color:var(--yellow);}
+.tabs{display:flex;gap:4px;background:var(--card);padding:6px;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:24px;width:fit-content;}
+.tab{padding:8px 20px;border-radius:var(--radius-sm);font-size:13.5px;font-weight:500;cursor:pointer;color:var(--text-secondary);border:none;background:none;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.tab.active{background:var(--green);color:white;font-weight:600;}
+.tab:hover:not(.active){background:var(--bg);}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.section-title{font-size:17px;font-weight:700;}
+.section-count{background:var(--red);color:white;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:8px;}
+.table-card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;box-shadow:var(--shadow);}
+table{width:100%;border-collapse:collapse;}
+th{background:#f9fafb;padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);}
+td{padding:14px 16px;border-bottom:1px solid #f3f4f6;vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#fafafa;}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:600;}
+.badge-pending{background:var(--yellow-light);color:#92400e;}
+.badge-active{background:var(--green-light);color:#166534;}
+.badge-rejected{background:var(--red-light);color:#991b1b;}
+.badge-starter{background:#eff6ff;color:#1e40af;}
+.badge-professional{background:#f5f3ff;color:#5b21b6;}
+.badge-enterprise{background:#fff7ed;color:#92400e;}
+.badge-free{background:#f3f4f6;color:#6b7280;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;border:none;transition:all .15s;}
+.btn-approve{background:var(--green);color:white;}
+.btn-approve:hover{background:var(--green-dark);}
+.btn-reject{background:white;color:var(--red);border:1.5px solid var(--red);}
+.btn-reject:hover{background:var(--red-light);}
+.btn-view{background:var(--blue-light);color:var(--blue);}
+.btn-view:hover{background:#dbeafe;}
+.btn-actions{display:flex;gap:8px;}
+.user-info-cell{display:flex;align-items:center;gap:10px;}
+.user-avatar{width:34px;height:34px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:13px;flex-shrink:0;}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:white;border-radius:var(--radius);width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.modal-header{padding:24px 24px 0;display:flex;justify-content:space-between;align-items:center;}
+.modal-title{font-size:18px;font-weight:700;}
+.modal-close{width:32px;height:32px;border:none;background:#f3f4f6;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
+.modal-body{padding:20px 24px 24px;}
+.info-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f3f4f6;font-size:13.5px;}
+.info-row:last-child{border-bottom:none;}
+.info-label{color:var(--text-secondary);font-weight:500;}
+.info-value{font-weight:600;}
+.screenshot-section{margin:16px 0;}
+.screenshot-section h4{font-size:13px;font-weight:600;color:#374151;margin-bottom:10px;}
+.screenshot-box{border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border);background:#f9fafb;}
+.screenshot-box img{width:100%;display:block;max-height:400px;object-fit:contain;background:#f9fafb;}
+.no-screenshot{padding:32px;text-align:center;color:var(--text-light);font-size:13px;}
+.no-screenshot .icon{font-size:32px;margin-bottom:8px;}
+.modal-actions{display:flex;gap:10px;margin-top:20px;}
+.modal-actions .btn{flex:1;justify-content:center;padding:11px;}
+.empty-state{padding:60px;text-align:center;color:var(--text-light);}
+.empty-state svg{width:48px;height:48px;margin:0 auto 12px;opacity:.3;}
+.empty-state p{font-size:14px;}
+.search-bar{display:flex;gap:12px;margin-bottom:16px;}
+.search-input{flex:1;padding:9px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13.5px;font-family:'DM Sans',sans-serif;outline:none;}
+.search-input:focus{border-color:var(--green);}
+.filter-select{padding:9px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13.5px;font-family:'DM Sans',sans-serif;outline:none;cursor:pointer;}
+.toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:var(--radius-sm);font-size:13.5px;font-weight:500;z-index:999;color:white;max-width:380px;box-shadow:0 4px 12px rgba(0,0,0,.2);transform:translateY(100px);opacity:0;transition:all .3s;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{background:#111827;}
+.toast.error{background:var(--red);}
+
+/* LOGIN SCREEN */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);}
+.login-card{background:white;border-radius:var(--radius);padding:40px;width:380px;box-shadow:0 4px 24px rgba(0,0,0,.1);}
+.login-logo{display:flex;align-items:center;gap:10px;margin-bottom:28px;justify-content:center;}
+.login-logo img{width:40px;height:40px;border-radius:10px;object-fit:cover;}
+.login-title{font-size:22px;font-weight:700;text-align:center;margin-bottom:6px;}
+.login-sub{font-size:13px;color:var(--text-secondary);text-align:center;margin-bottom:28px;}
+.form-group{margin-bottom:16px;}
+.form-group label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;}
+.form-group input{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;}
+.form-group input:focus{border-color:var(--green);}
+.btn-login{width:100%;padding:12px;background:#111827;color:white;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px;}
+.btn-login:hover{background:#1f2937;}
+.error-msg{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:13px;color:#991b1b;margin-bottom:14px;display:none;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" class="login-wrap">
+  <div class="login-card">
+    <!-- ✅ FIX 1: Logo image properly showing -->
+    <div class="login-logo">
+      <img src="../assets/images/logo.jpeg" alt="Raja Cloud Logo">
+      <span style="font-size:18px;font-weight:700;">Raja Cloud</span>
+    </div>
+    <div class="login-title">Admin Panel</div>
+    <div class="login-sub">Sirf authorized admins ke liye</div>
+    <div class="error-msg" id="loginErrorMsg"></div>
+    <div class="form-group">
+      <label>Admin Email</label>
+      <input type="email" id="adminEmail" placeholder="admin@rajacloud.com" onkeydown="if(event.key==='Enter')adminLogin()">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="adminPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')adminLogin()">
+    </div>
+    <button class="btn-login" onclick="adminLogin()">Login as Admin</button>
+    <!-- ✅ FIX 2: Back link removed -->
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="adminPanel" style="display:none;">
+  <div class="topbar">
+    <div class="topbar-left">
+      <img src="../assets/images/logo.jpeg" class="admin-logo" onerror="this.style.display='none'" alt="Logo">
+      <span class="admin-brand">Raja Cloud</span>
+      <span class="admin-badge">ADMIN</span>
+    </div>
+    <div class="topbar-right">
+      <span class="admin-email" id="adminEmailDisplay"></span>
+      <button class="logout-btn" onclick="adminLogout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Total Users</div><div class="stat-value blue" id="statTotalUsers">—</div></div>
+      <div class="stat-card"><div class="stat-label">Pending Requests</div><div class="stat-value yellow" id="statPending">—</div></div>
+      <div class="stat-card"><div class="stat-label">Active Plans</div><div class="stat-value green" id="statActive">—</div></div>
+      <div class="stat-card"><div class="stat-label">Total Revenue</div><div class="stat-value green" id="statRevenue">—</div></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('requests')">Subscription Requests <span class="section-count" id="pendingCount">0</span></button>
+      <button class="tab" onclick="switchTab('users')">All Users</button>
+      <button class="tab" onclick="switchTab('messages')">Messages Log</button>
+    </div>
+
+    <div id="tab-requests">
+      <div class="section-header">
+        <span class="section-title">Pending Subscription Requests</span>
+        <button class="btn btn-view" onclick="loadRequests()">🔄 Refresh</button>
+      </div>
+      <div class="table-card"><table>
+        <thead><tr><th>User</th><th>Plan</th><th>Date</th><th>Payment</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="requestsTable"><tr><td colspan="6" style="text-align:center;padding:40px;color:#9ca3af;">Loading...</td></tr></tbody>
+      </table></div>
+    </div>
+
+    <div id="tab-users" style="display:none;">
+      <div class="section-header">
+        <span class="section-title">All Registered Users</span>
+        <button class="btn btn-view" onclick="loadUsers()">🔄 Refresh</button>
+      </div>
+      <div class="search-bar">
+        <input class="search-input" id="userSearch" placeholder="🔍 Email ya naam se search..." oninput="filterUsers()">
+        <select class="filter-select" id="planFilter" onchange="filterUsers()">
+          <option value="">All Plans</option>
+          <option value="free">Free</option>
+          <option value="starter">Starter</option>
+          <option value="professional">Professional</option>
+          <option value="enterprise">Enterprise</option>
+        </select>
+      </div>
+      <div class="table-card"><table>
+        <thead><tr><th>User</th><th>Email</th><th>Plan</th><th>Joined</th><th>Actions</th></tr></thead>
+        <tbody id="usersTable"><tr><td colspan="5" style="text-align:center;padding:40px;color:#9ca3af;">Loading...</td></tr></tbody>
+      </table></div>
+    </div>
+
+    <div id="tab-messages" style="display:none;">
+      <div class="section-header">
+        <span class="section-title">Recent Messages</span>
+        <button class="btn btn-view" onclick="loadMessages()">🔄 Refresh</button>
+      </div>
+      <div class="table-card"><table>
+        <thead><tr><th>From</th><th>To</th><th>Message</th><th>Type</th><th>Status</th><th>Time</th></tr></thead>
+        <tbody id="messagesTable"><tr><td colspan="6" style="text-align:center;padding:40px;color:#9ca3af;">Loading...</td></tr></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<!-- REQUEST MODAL -->
+<div class="modal-overlay" id="requestModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Subscription Request Detail</div>
+      <button class="modal-close" onclick="closeModal('requestModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="modalContent"></div>
+      <div class="modal-actions" id="modalActionBtns">
+        <button class="btn btn-reject" onclick="reviewFromModal('rejected')">✕ Reject</button>
+        <button class="btn btn-approve" onclick="reviewFromModal('approved')">✓ Approve & Activate</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PLAN MODAL -->
+<div class="modal-overlay" id="planModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Change User Plan</div>
+      <button class="modal-close" onclick="closeModal('planModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom:16px;font-size:13.5px;color:#6b7280;">User: <strong id="planModalUser"></strong></p>
+      <div class="form-group" style="margin-bottom:16px;">
+        <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;">New Plan</label>
+        <select class="filter-select" id="newPlanSelect" style="width:100%">
+          <option value="free">Free</option>
+          <option value="starter">Starter — Rs.2,500/mo</option>
+          <option value="professional">Professional — Rs.4,000/mo</option>
+          <option value="enterprise">Enterprise — Rs.8,000/mo</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-reject" onclick="closeModal('planModal')">Cancel</button>
+        <button class="btn btn-approve" onclick="changePlan()">Update Plan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'https://api.rajacloud.online/api';
+let adminToken = null, allUsers = [], currentRequestId = null, currentUserId = null;
+
+async function adminLogin() {
+  const email = document.getElementById('adminEmail').value.trim();
+  const pass  = document.getElementById('adminPass').value.trim();
+  const errEl = document.getElementById('loginErrorMsg');
+  errEl.style.display = 'none';
+  if (!email || !pass) { errEl.textContent='Email aur password zaroori hain'; errEl.style.display='block'; return; }
+  const btn = document.querySelector('.btn-login');
+  btn.textContent='Please wait...'; btn.disabled=true;
+  try {
+    const res  = await fetch(`${API}/auth/login`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})});
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent=data.detail||'Login failed'; errEl.style.display='block'; return; }
+    const isAdmin = data.user && (data.user.role==='admin' || data.user.plan==='enterprise' || data.user.is_admin===true);
+    if (!isAdmin) { errEl.textContent='❌ Admin access nahi hai!'; errEl.style.display='block'; return; }
+    adminToken = data.access_token;
+    localStorage.setItem('admin_token', adminToken);
+    localStorage.setItem('admin_user', JSON.stringify(data.user));
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('adminPanel').style.display='block';
+    document.getElementById('adminEmailDisplay').textContent=data.user?.email||email;
+    loadDashboard();
+  } catch(e) { errEl.textContent='Backend se connect nahi hua'; errEl.style.display='block'; }
+  finally { btn.textContent='Login as Admin'; btn.disabled=false; }
+}
+
+function adminLogout() {
+  localStorage.removeItem('admin_token');
+  localStorage.removeItem('admin_user');
+  adminToken=null;
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('adminPanel').style.display='none';
+  document.getElementById('adminEmail').value='';
+  document.getElementById('adminPass').value='';
+}
+
+(function() {
+  const tk=localStorage.getItem('admin_token');
+  const user=JSON.parse(localStorage.getItem('admin_user')||'null');
+  if (tk && user) {
+    adminToken=tk;
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('adminPanel').style.display='block';
+    document.getElementById('adminEmailDisplay').textContent=user.email||'Admin';
+    loadDashboard();
+  }
+})();
+
+function switchTab(tab) {
+  ['requests','users','messages'].forEach(t=>document.getElementById('tab-'+t).style.display=t===tab?'block':'none');
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['requests','users','messages'][i]===tab));
+  if(tab==='requests') loadRequests();
+  if(tab==='users')    loadUsers();
+  if(tab==='messages') loadMessages();
+}
+
+function loadDashboard() { loadRequests(); loadStats(); }
+
+async function loadStats() {
+  try {
+    const h={'Authorization':'Bearer '+adminToken};
+    const uRes=await fetch(`${API}/auth/admin/users`,{headers:h});
+    if(uRes.ok){const u=await uRes.json();allUsers=u;document.getElementById('statTotalUsers').textContent=u.length;document.getElementById('statActive').textContent=u.filter(x=>x.plan&&x.plan!=='free').length;const p={starter:2500,professional:4000,enterprise:8000};document.getElementById('statRevenue').textContent='Rs.'+u.reduce((s,x)=>s+(p[x.plan]||0),0).toLocaleString();}
+    const rRes=await fetch(`${API}/subscription-requests/admin/all`,{headers:h});
+    if(rRes.ok){const r=await rRes.json();const n=r.filter(x=>x.status==='pending').length;document.getElementById('statPending').textContent=n;document.getElementById('pendingCount').textContent=n;}
+  }catch(e){}
+}
+
+async function loadRequests() {
+  const tb=document.getElementById('requestsTable');
+  tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:32px;color:#9ca3af;">Loading...</td></tr>';
+  try {
+    const res=await fetch(`${API}/subscription-requests/admin/all`,{headers:{'Authorization':'Bearer '+adminToken}});
+    const data=await res.json();
+    if(!data.length){tb.innerHTML=`<tr><td colspan="6"><div class="empty-state"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><p>Koi pending request nahi ✅</p></div></td></tr>`;return;}
+    const sorted=[...data].sort((a,b)=>{if(a.status==='pending'&&b.status!=='pending')return -1;if(b.status==='pending'&&a.status!=='pending')return 1;return new Date(b.created_at)-new Date(a.created_at);});
+    const pr={starter:2500,professional:4000,enterprise:8000};
+    tb.innerHTML=sorted.map(r=>`<tr>
+      <td><div class="user-info-cell"><div class="user-avatar">${(r.user_name||r.user_email||'U')[0].toUpperCase()}</div>
+      <div><div style="font-weight:600;font-size:13.5px;">${r.user_name||'—'}</div><div style="font-size:12px;color:#6b7280;">${r.user_email||''}</div></div></div></td>
+      <td><span class="badge badge-${r.plan}">${cap(r.plan)}</span><div style="font-size:11.5px;color:#6b7280;margin-top:3px;">Rs.${(pr[r.plan]||0).toLocaleString()}/mo</div></td>
+      <td style="font-size:13px;color:#6b7280;">${fmt(r.created_at)}</td>
+      <td style="font-size:13px;">${r.payment_method==='whatsapp'?'📱 WhatsApp':r.payment_method||'—'}</td>
+      <td><span class="badge badge-${r.status}">${cap(r.status)}</span></td>
+      <td><div class="btn-actions">
+        <button class="btn btn-view" onclick='viewRequest(${JSON.stringify(r).replace(/'/g,"&#39;")})'>👁 View</button>
+        ${r.status==='pending'?`<button class="btn btn-approve" onclick="quickReview(${r.id},'approved')">✓</button><button class="btn btn-reject" onclick="quickReview(${r.id},'rejected')">✕</button>`:''}
+      </div></td></tr>`).join('');
+  }catch(e){tb.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:32px;color:#ef4444;">❌ Backend se connect nahi hua</td></tr>`;}
+}
+
+function viewRequest(r) {
+  currentRequestId=r.id;
+  const pr={starter:2500,professional:4000,enterprise:8000};
+  const ss=r.screenshot_base64
+    ?`<img src="${r.screenshot_base64.startsWith('data:')?r.screenshot_base64:'data:image/jpeg;base64,'+r.screenshot_base64}" style="width:100%;display:block;max-height:400px;object-fit:contain;background:#f9fafb;border-radius:8px;" onerror="this.parentElement.innerHTML='<div class=no-screenshot><div class=icon>⚠️</div>Load nahi hua</div>'">`
+    :`<div class="no-screenshot"><div class="icon">📷</div>Screenshot upload nahi hua</div>`;
+  document.getElementById('modalContent').innerHTML=`
+    <div class="info-row"><span class="info-label">User Name</span><span class="info-value">${r.user_name||'—'}</span></div>
+    <div class="info-row"><span class="info-label">Email</span><span class="info-value">${r.user_email||'—'}</span></div>
+    <div class="info-row"><span class="info-label">Plan</span><span class="info-value"><span class="badge badge-${r.plan}">${cap(r.plan)} — Rs.${(pr[r.plan]||0).toLocaleString()}/mo</span></span></div>
+    <div class="info-row"><span class="info-label">Payment</span><span class="info-value">${r.payment_method==='whatsapp'?'📱 WhatsApp':r.payment_method||'—'}</span></div>
+    <div class="info-row"><span class="info-label">Date</span><span class="info-value">${fmt(r.created_at)}</span></div>
+    <div class="info-row"><span class="info-label">Status</span><span class="info-value"><span class="badge badge-${r.status}">${cap(r.status)}</span></span></div>
+    ${r.notes?`<div class="info-row"><span class="info-label">Notes</span><span class="info-value">${r.notes}</span></div>`:''}
+    <div class="screenshot-section"><h4>💳 Payment Screenshot:</h4><div class="screenshot-box">${ss}</div></div>`;
+  document.getElementById('modalActionBtns').style.display=r.status==='pending'?'flex':'none';
+  document.getElementById('requestModal').classList.add('open');
+}
+async function reviewFromModal(a){await quickReview(currentRequestId,a);closeModal('requestModal');}
+async function quickReview(id,action){
+  try{
+    const res=await fetch(`${API}/subscription-requests/admin/${id}/review`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+adminToken},body:JSON.stringify({status:action,notes:action==='approved'?'Admin ne approve kiya':'Admin ne reject kiya'})});
+    if(res.ok){toast(action==='approved'?'✅ Plan activate ho gaya!':'❌ Reject ho gayi',action==='approved'?'success':'error');loadRequests();loadStats();}
+    else{const d=await res.json();toast(d.detail||'Error','error');}
+  }catch(e){toast('Backend se connect nahi hua','error');}
+}
+
+async function loadUsers(){
+  const tb=document.getElementById('usersTable');
+  tb.innerHTML='<tr><td colspan="5" style="text-align:center;padding:32px;color:#9ca3af;">Loading...</td></tr>';
+  try{const res=await fetch(`${API}/auth/admin/users`,{headers:{'Authorization':'Bearer '+adminToken}});allUsers=await res.json();renderUsers(allUsers);}
+  catch(e){tb.innerHTML=`<tr><td colspan="5" style="text-align:center;padding:32px;color:#ef4444;">Backend se connect nahi hua</td></tr>`;}
+}
+function renderUsers(u){
+  const tb=document.getElementById('usersTable');
+  if(!u.length){tb.innerHTML='<tr><td colspan="5" style="text-align:center;padding:40px;color:#9ca3af;">Koi user nahi mila</td></tr>';return;}
+  tb.innerHTML=u.map(x=>`<tr>
+    <td><div class="user-info-cell"><div class="user-avatar">${(x.full_name||x.email||'U')[0].toUpperCase()}</div><div style="font-weight:600;font-size:13.5px;">${x.full_name||'—'}</div></div></td>
+    <td style="font-size:13px;color:#6b7280;">${x.email}</td>
+    <td><span class="badge badge-${x.plan||'free'}">${cap(x.plan||'free')}</span></td>
+    <td style="font-size:13px;color:#6b7280;">${fmt(x.created_at)}</td>
+    <td><button class="btn btn-view" onclick="openPlanModal(${x.id},'${x.email}','${x.plan||'free'}')">✏️ Plan Change</button></td>
+  </tr>`).join('');
+}
+function filterUsers(){
+  const q=document.getElementById('userSearch').value.toLowerCase();
+  const p=document.getElementById('planFilter').value;
+  renderUsers(allUsers.filter(u=>(!q||(u.email||'').toLowerCase().includes(q)||(u.full_name||'').toLowerCase().includes(q))&&(!p||(u.plan||'free')===p)));
+}
+function openPlanModal(id,email,plan){currentUserId=id;document.getElementById('planModalUser').textContent=email;document.getElementById('newPlanSelect').value=plan;document.getElementById('planModal').classList.add('open');}
+async function changePlan(){
+  const p=document.getElementById('newPlanSelect').value;
+  try{const res=await fetch(`${API}/auth/admin/users/${currentUserId}/plan`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+adminToken},body:JSON.stringify({plan:p})});
+  if(res.ok){toast('✅ Plan update ho gaya!','success');closeModal('planModal');loadUsers();loadStats();}else toast('Plan update nahi hua','error');}
+  catch(e){toast('Backend se connect nahi hua','error');}
+}
+
+async function loadMessages(){
+  const tb=document.getElementById('messagesTable');
+  tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:32px;color:#9ca3af;">Loading...</td></tr>';
+  try{
+    const res=await fetch(`${API}/message-log/?limit=50`,{headers:{'Authorization':'Bearer '+adminToken}});
+    const data=await res.json();const msgs=data.messages||data;
+    if(!msgs.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:40px;color:#9ca3af;">Koi message nahi mila</td></tr>';return;}
+    tb.innerHTML=msgs.map(m=>`<tr>
+      <td style="font-size:13px;">${m.from_number||'—'}</td><td style="font-size:13px;">${m.to_number||'—'}</td>
+      <td style="font-size:13px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.content||'—'}</td>
+      <td><span class="badge" style="background:#f3f4f6;color:#374151;">${m.message_type||'text'}</span></td>
+      <td><span class="badge badge-${m.status==='delivered'?'active':m.status==='failed'?'rejected':'pending'}">${m.status||'—'}</span></td>
+      <td style="font-size:12px;color:#6b7280;">${fmt(m.created_at)}</td></tr>`).join('');
+  }catch(e){tb.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:32px;color:#ef4444;">Backend se connect nahi hua</td></tr>`;}
+}
+
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function cap(s){return s?s.charAt(0).toUpperCase()+s.slice(1):'—';}
+function fmt(d){if(!d)return'—';return new Date(d).toLocaleDateString('en-PK',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+function toast(msg,type='success'){const t=document.getElementById('toast');t.textContent=msg;t.className=`toast ${type} show`;setTimeout(()=>t.classList.remove('show'),3500);}
+document.querySelectorAll('.modal-overlay').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
+</script>
+</body>
+</html>
