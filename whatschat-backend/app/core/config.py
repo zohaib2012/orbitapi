@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     # JWT
     SECRET_KEY: str = "change-this-secret-key"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080  # 7 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 43200  # 30 days
 
     # WhatsApp
     WHATSAPP_API_URL: str = "https://graph.facebook.com/v18.0"

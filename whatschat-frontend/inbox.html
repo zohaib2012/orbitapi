@@ -63,6 +63,8 @@
   .conv-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
   .conv-time { font-size: 11px; color: var(--text-light); }
   .conv-unread { background: var(--green); color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 10px; min-width: 18px; text-align: center; }
+  .tab-btn { padding: 4px 10px; border-radius: 12px; font-size: 11.5px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--main-bg); color: var(--text-secondary); transition: all .15s; }
+  .tab-btn.active { background: var(--green); color: white; border-color: var(--green); }
   .conv-empty { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
   .conv-empty svg { width: 40px; height: 40px; margin: 0 auto 12px; display: block; color: var(--text-light); }
 
@@ -233,8 +235,58 @@
     display: flex; align-items: center; justify-content: center;
     color: var(--text-secondary); font-size: 16px; transition: all .15s;
   }
-  .star-filter-btn:hover { background: var(--border); color: #f59e0b; }
+  .star-filter-btn:hover { background: #fef3c7; color: #f59e0b; }
   .star-filter-btn.active-filter { background: #fef3c7; color: #f59e0b; }
+
+  /* ── Online Status ────────────────────────────────────────────── */
+  .status-container { display: flex; align-items: center; gap: 5px; margin-top: 2px; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #9ca3af; transition: all .3s; }
+  .status-dot.online { background: #25D366; box-shadow: 0 0 8px rgba(37,211,102,0.5); }
+  .status-text { font-size: 11px; color: var(--text-secondary); font-weight: 500; }
+
+  /* ── Delete Message Button ──────────────────────────────────── */
+  .delete-msg-btn {
+    background: none; border: none; font-size: 14px; cursor: pointer;
+    color: #d1d5db; padding: 0 2px; opacity: 0; transition: all .15s;
+  }
+  .msg-bubble:hover .delete-msg-btn { opacity: 1; }
+  .delete-msg-btn:hover { color: #ef4444; }
+
+  /* ── Export Button ────────────────────────────────────────────── */
+  .export-btn {
+    display: flex; align-items: center; gap: 6px; padding: 7px 12px;
+    background: white; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text-secondary); font-size: 12.5px; font-weight: 600; cursor: pointer;
+    transition: all .15s;
+  }
+  .export-btn:hover { background: var(--main-bg); color: var(--text-primary); border-color: #cbd5e1; }
+  .export-btn svg { width: 15px; height: 15px; }
+
+
+  /* ── Online Status ────────────────────────────────────────────── */
+  .status-container { display: flex; align-items: center; gap: 5px; margin-top: 2px; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #9ca3af; }
+  .status-dot.online { background: #25D366; box-shadow: 0 0 8px rgba(37,211,102,0.5); }
+  .status-text { font-size: 11px; color: var(--text-secondary); font-weight: 500; }
+
+  /* ── Delete Message Button ──────────────────────────────────── */
+  .delete-msg-btn {
+    background: none; border: none; font-size: 14px; cursor: pointer;
+    color: #d1d5db; padding: 0 2px; opacity: 0; transition: all .15s;
+  }
+  .msg-bubble:hover .delete-msg-btn { opacity: 1; }
+  .delete-msg-btn:hover { color: #ef4444; }
+
+  /* ── Export Button ────────────────────────────────────────────── */
+  .export-btn {
+    display: flex; align-items: center; gap: 6px; padding: 7px 12px;
+    background: white; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text-secondary); font-size: 12.5px; font-weight: 600; cursor: pointer;
+    transition: all .15s;
+  }
+  .export-btn:hover { background: var(--main-bg); color: var(--text-primary); border-color: #cbd5e1; }
+  .export-btn svg { width: 15px; height: 15px; }
+
 </style>
 </head>
 <body>
@@ -310,6 +362,10 @@
   <div class="topbar">
     <h2>💬 WhatsApp Inbox</h2>
     <div class="topbar-right">
+      <button class="export-btn" onclick="Contacts.exportCSV()" style="margin-right: 10px;">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+        Export Contacts
+      </button>
       <div class="search-box">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" id="globalSearch" placeholder="Search conversations...">
@@ -323,6 +379,11 @@
     <div class="conv-list">
       <div class="conv-header">
         <h3>Conversations</h3>
+        <div style="display:flex; gap:8px; margin-bottom:10px;">
+          <button class="tab-btn active" id="tab-all" onclick="setConvTab('all')">All</button>
+          <button class="tab-btn" id="tab-unread" onclick="setConvTab('unread')">Unread</button>
+          <button class="tab-btn" id="tab-fav" onclick="setConvTab('fav')">Favorites</button>
+        </div>
         <div class="conv-search">
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input type="text" id="convSearch" placeholder="Search..." oninput="filterConversations(this.value)">
@@ -348,8 +409,13 @@
         <div class="chat-header">
           <div class="chat-header-avatar" id="chatAvatar">?</div>
           <div class="chat-header-info">
-            <div class="name"  id="chatName">—</div>
-            <div class="phone" id="chatPhone">—</div>
+            <div class="name" id="chatName">—</div>
+            <div class="status-container" id="chatStatusContainer" style="display:none">
+              <div class="status-dot" id="statusDot"></div>
+              <span class="status-text" id="statusText">Offline</span>
+              <span style="color:#e5e7eb;margin:0 4px">•</span>
+              <span class="phone" id="chatPhone">—</span>
+            </div>
           </div>
           <div class="chat-header-actions">
             <button class="icon-btn-sm" title="Copy Chat" onclick="copyChatHistory()">📋</button>

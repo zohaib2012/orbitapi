@@ -5,6 +5,7 @@ import uuid
 import aiofiles # type: ignore
 import subprocess
 import tempfile
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, Query, UploadFile, File, Form, HTTPException
 from fastapi.responses import JSONResponse
@@ -14,7 +15,7 @@ from pydantic import BaseModel
 
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.user import User, InboxMessage, MessageDirection
+from app.models.user import User, InboxMessage, MessageDirection, FavoriteConversation
 
 router = APIRouter(prefix="/inbox", tags=["Inbox"])
 
@@ -89,6 +90,11 @@ def get_conversations(
             InboxMessage.is_read        == False,
         ).count()
 
+        is_fav = db.query(FavoriteConversation).filter(
+            FavoriteConversation.user_id == current_user.id,
+            FavoriteConversation.customer_phone == row.customer_phone
+        ).first() is not None
+
         last_content = last_msg.content if last_msg else None
         if last_msg and last_msg.message_type in ("image", "video", "audio"):
             icons        = {"image": "📷 Image", "video": "🎥 Video", "audio": "🎵 Audio"}
@@ -101,6 +107,7 @@ def get_conversations(
             "last_message_type": last_msg.message_type   if last_msg else "text",
             "last_time":         last_msg.received_at.isoformat() if last_msg and last_msg.received_at else None,
             "unread_count":      unread,
+            "is_favorite":       is_fav,
             "direction":         last_msg.direction       if last_msg else None,
         })
     return conversations
@@ -143,6 +150,89 @@ def delete_conversation_messages(
     ).delete()
     db.commit()
     return {"message": "Conversation deleted successfully"}
+
+
+# ─── POST: Toggle Conversation Favorite ──────────────────────────────────────
+
+@router.post("/conversation/{phone}/favorite")
+def toggle_conversation_favorite(
+    phone:        str,
+    db:           Session = Depends(get_db),
+    current_user: User    = Depends(get_current_user),
+):
+    fav = db.query(FavoriteConversation).filter(
+        FavoriteConversation.user_id == current_user.id,
+        FavoriteConversation.customer_phone == phone
+    ).first()
+
+    if fav:
+        db.delete(fav)
+        is_favorite = False
+    else:
+        new_fav = FavoriteConversation(user_id=current_user.id, customer_phone=phone)
+        db.add(new_fav)
+        is_favorite = True
+
+    db.commit()
+    return {"message": "Success", "is_favorite": is_favorite, "customer_phone": phone}
+
+
+# ─── DELETE: Single message by ID ──────────────────────────────────────
+
+@router.delete("/message/{msg_id}")
+def delete_single_message(
+    msg_id:       int,
+    db:           Session = Depends(get_db),
+    current_user: User    = Depends(get_current_user),
+):
+    msg = db.query(InboxMessage).filter(
+        InboxMessage.id      == msg_id,
+        InboxMessage.user_id == current_user.id,
+    ).first()
+    if not msg:
+        raise HTTPException(404, "Message not found")
+    db.delete(msg)
+    db.commit()
+    return {"message": "Message deleted", "id": msg_id}
+
+
+# ─── GET: Online / Last Seen status ────────────────────────────────────
+
+@router.get("/status/{phone}")
+def get_contact_status(
+    phone:        str,
+    db:           Session = Depends(get_db),
+    current_user: User    = Depends(get_current_user),
+):
+    """Return online status based on last message received time.
+    'online'  = message within last 2 minutes
+    'recent'  = within last 10 minutes
+    'offline' = older than 10 minutes"""
+    last_msg = db.query(InboxMessage).filter(
+        InboxMessage.user_id        == current_user.id,
+        InboxMessage.customer_phone == phone,
+        InboxMessage.direction      == MessageDirection.inbound,
+    ).order_by(InboxMessage.received_at.desc()).first()
+
+    if not last_msg or not last_msg.received_at:
+        return {"status": "offline", "last_seen": None}
+
+    now       = datetime.utcnow()
+    last_seen = last_msg.received_at.replace(tzinfo=None)
+    diff_mins = (now - last_seen).total_seconds() / 60
+
+    if diff_mins < 2:
+        status = "online"
+    elif diff_mins < 10:
+        status = "recent"
+    else:
+        status = "offline"
+
+    return {
+        "status":    status,
+        "last_seen": last_msg.received_at.isoformat(),
+        "phone":     phone,
+    }
 
 
 # ─── GET: Starred messages for a conversation ────────────────────────────────

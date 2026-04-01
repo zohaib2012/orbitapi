@@ -81,3 +81,11 @@ def update_plan(data: PlanUpdateRequest, current_user: User = Depends(get_curren
     db.commit()
     db.refresh(current_user)
     return current_user
+
+
+@router.post("/refresh", response_model=TokenResponse)
+def refresh_token(current_user: User = Depends(get_current_user)):
+    """Silently refresh an expiring token — returns a fresh 30-day token.
+    Call this endpoint on app load or when a 401 is received."""
+    new_token = create_access_token({"sub": str(current_user.id)})
+    return {"access_token": new_token, "token_type": "bearer", "user": current_user}

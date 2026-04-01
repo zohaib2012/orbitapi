@@ -11,17 +11,60 @@ function removeToken() { localStorage.removeItem("wc_token"); localStorage.remov
 function getUser()     { const u = localStorage.getItem("wc_user"); return u ? JSON.parse(u) : null; }
 function setUser(u)    { localStorage.setItem("wc_user", JSON.stringify(u)); }
 
-async function apiFetch(endpoint, options = {}) {
+let _isRefreshing = false;
+let _refreshQueue = [];
+
+async function apiFetch(endpoint, options = {}, _isRetry = false) {
   const token = getToken();
   const headers = { "Content-Type": "application/json", ...(token ? { "Authorization": `Bearer ${token}` } : {}), ...options.headers };
   try {
     const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
-    if (res.status === 401) {
-      const skip401 = ["/whatsapp/test", "/whatsapp/send", "/inbox/reply", "/inbox/send-media", "/inbox/send-audio-record"];
-      if (!skip401.some(p => endpoint.includes(p))) { removeToken(); window.location.href = "auth/login.html"; return; }
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.detail || "Token invalid.");
+
+    if (res.status === 401 && !_isRetry) {
+      // Try silent token refresh before logging out
+      const skip401 = ["/auth/login", "/auth/register", "/auth/refresh"];
+      if (!skip401.some(p => endpoint.includes(p))) {
+        if (!_isRefreshing) {
+          _isRefreshing = true;
+          try {
+            const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
+              method: "POST",
+              headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }
+            });
+            if (refreshRes.ok) {
+              const refreshData = await refreshRes.json();
+              setToken(refreshData.access_token);
+              if (refreshData.user) setUser(refreshData.user);
+              _refreshQueue.forEach(fn => fn(refreshData.access_token));
+              _refreshQueue = [];
+              _isRefreshing = false;
+              // Retry original request with new token
+              return apiFetch(endpoint, options, true);
+            } else {
+              // Refresh failed — logout
+              _isRefreshing = false;
+              removeToken();
+              window.location.href = "auth/login.html";
+              return;
+            }
+          } catch (_) {
+            _isRefreshing = false;
+            removeToken();
+            window.location.href = "auth/login.html";
+            return;
+          }
+        } else {
+          // Queue the retry
+          return new Promise((resolve, reject) => {
+            _refreshQueue.push(newToken => {
+              options.headers = { ...options.headers, "Authorization": `Bearer ${newToken}` };
+              resolve(apiFetch(endpoint, options, true));
+            });
+          });
+        }
+      }
     }
+
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || "Something went wrong");
     return data;
@@ -79,6 +122,7 @@ const Contacts = {
   async update(id, data) { return await apiFetch(`/contacts/${id}`, { method: "PUT", body: JSON.stringify(data) }); },
   async delete(id)       { return await apiFetch(`/contacts/${id}`, { method: "DELETE" }); },
   async importCSV(file)  { const fd = new FormData(); fd.append("file", file); return await apiUpload("/contacts/import/csv", fd); },
+  exportCSV()            { window.open(`${API_BASE}/contacts/export/csv?token=${getToken()}`, "_blank"); },
 };
 
 const Campaigns = {
@@ -176,8 +220,10 @@ const Inbox = {
     }
     return r.json();
   },
-  starMessage: (msgId) => apiFetch(`/inbox/star/${msgId}`, { method: "POST" }),
-  getStarred:  (phone) => apiFetch(`/inbox/starred/${encodeURIComponent(phone)}`),
+  starMessage:          (msgId) => apiFetch(`/inbox/star/${msgId}`, { method: "POST" }),
+  getStarred:           (phone) => apiFetch(`/inbox/starred/${encodeURIComponent(phone)}`),
+  deleteMessage:        (msgId) => apiFetch(`/inbox/message/${msgId}`, { method: "DELETE" }),
+  getContactStatus:     (phone) => apiFetch(`/inbox/status/${encodeURIComponent(phone)}`),
 };
 
 const InteractiveMenus = {

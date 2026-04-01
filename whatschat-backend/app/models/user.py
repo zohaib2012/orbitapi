@@ -377,3 +377,15 @@ class InboxMessage(Base):
     received_at         = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", foreign_keys=[user_id])
+
+
+class FavoriteConversation(Base):
+    """Conversations marked as favorite by the user"""
+    __tablename__ = "favorite_conversations"
+
+    id              = Column(Integer, primary_key=True, index=True)
+    user_id         = Column(Integer, ForeignKey("users.id"), nullable=False)
+    customer_phone  = Column(String(30), nullable=False)
+    created_at      = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", foreign_keys=[user_id])

@@ -135,3 +135,39 @@ async def import_csv(
 
     db.commit()
     return {"imported": imported, "skipped": skipped, "message": f"{imported} contacts imported successfully"}
+
+
+@router.get("/export/csv")
+def export_contacts_csv(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Export all contacts to a downloadable CSV file with all details."""
+    from fastapi.responses import StreamingResponse
+    import json as _json
+
+    contacts = db.query(Contact).filter(Contact.user_id == current_user.id)\
+                 .order_by(Contact.created_at.desc()).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Name", "Phone", "Email", "Tags", "Status", "Notes", "Created At"])
+
+    for c in contacts:
+        tags_str = ", ".join(c.tags) if c.tags else ""
+        writer.writerow([
+            c.name,
+            c.phone,
+            c.email or "",
+            tags_str,
+            c.status.value if c.status else "active",
+            c.notes or "",
+            c.created_at.strftime("%Y-%m-%d %H:%M") if c.created_at else "",
+        ])
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=contacts_export.csv"},
+    )

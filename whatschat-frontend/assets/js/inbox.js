@@ -54,12 +54,20 @@ window.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
+  // Initial token refresh to keep session alive
+  Auth.refresh().catch(() => {});
+
   // Auto-refresh every 5 seconds (faster for real-time feel)
   setInterval(async () => {
     await loadConversations();
     if (currentPhone) await loadMessages(currentPhone, false);
     await loadUnreadBadge();
   }, 5000);
+
+  // Silent token refresh every 24 hours
+  setInterval(async () => {
+    await Auth.refresh().catch(() => {});
+  }, 24 * 60 * 60 * 1000);
 });
 
 
@@ -90,15 +98,18 @@ function renderConversations(list) {
     return;
   }
   el.innerHTML = list.map(c => {
-    const name    = c.customer_name || c.customer_phone;
-    const initial = name[0].toUpperCase();
-    const preview = c.last_message_type !== "text"
+    const rawPhone = c.customer_phone || "";
+    const phone    = rawPhone.startsWith("+") ? rawPhone : `+${rawPhone}`;
+    const name     = c.customer_name || phone;
+    const initial  = name[0].toUpperCase();
+    const preview  = c.last_message_type !== "text"
       ? `📎 ${c.last_message_type}`
       : (c.last_message || "");
     const time     = c.last_time ? formatTime(c.last_time) : "";
     const isActive = c.customer_phone === currentPhone ? "active" : "";
     const unread   = c.unread_count > 0 ? `<span class="conv-unread">${c.unread_count}</span>` : "";
     const dirIcon  = c.direction === "outbound" ? "↗ " : "";
+    const favIcon = c.is_favorite ? "❤️" : "🤍";
     return `<div class="conv-item ${isActive}"
                  onclick="openConversation('${c.customer_phone}','${name.replace(/'/g,"\\'")}')">
       <div class="conv-avatar">${initial}</div>
@@ -109,17 +120,49 @@ function renderConversations(list) {
       <div class="conv-meta">
         <span class="conv-time">${time}</span>
         ${unread}
+        <span onclick="event.stopPropagation(); toggleFavConv('${c.customer_phone}')" style="cursor:pointer; font-size:12px; margin-top:4px;" title="Favorite">${favIcon}</span>
       </div>
     </div>`;
   }).join("");
 }
 
+let currentConvTab = 'all';
+
+window.setConvTab = function(tab) {
+  currentConvTab = tab;
+  document.getElementById("tab-all").classList.remove("active");
+  document.getElementById("tab-unread").classList.remove("active");
+  document.getElementById("tab-fav").classList.remove("active");
+  document.getElementById("tab-" + tab).classList.add("active");
+  filterConversations(document.getElementById("convSearch").value);
+};
+
 window.filterConversations = function(q) {
-  const filtered = conversations.filter(c =>
-    (c.customer_name || "").toLowerCase().includes(q.toLowerCase()) ||
-    c.customer_phone.includes(q)
-  );
+  let filtered = conversations;
+  if (currentConvTab === 'unread') {
+    filtered = filtered.filter(c => c.unread_count > 0);
+  } else if (currentConvTab === 'fav') {
+    filtered = filtered.filter(c => c.is_favorite);
+  }
+  
+  if (q) {
+    filtered = filtered.filter(c =>
+      (c.customer_name || "").toLowerCase().includes(q.toLowerCase()) ||
+      c.customer_phone.includes(q)
+    );
+  }
   renderConversations(filtered);
+};
+
+window.toggleFavConv = async function(phone) {
+  try {
+    const res = await apiFetch(`/inbox/conversation/${encodeURIComponent(phone)}/favorite`, { method: "POST" });
+    const conv = conversations.find(c => c.customer_phone === phone);
+    if (conv) conv.is_favorite = res.is_favorite;
+    filterConversations(document.getElementById("convSearch").value);
+  } catch(e) {
+    showToast("Failed to toggle favorite", "error");
+  }
 };
 
 window.openConversation = async function(phone, name) {
@@ -141,7 +184,37 @@ window.openConversation = async function(phone, name) {
   if (starBtn) starBtn.classList.remove("active-filter");
 
   await loadMessages(phone, true);
+  await updateStatusUI(phone);
 };
+
+let statusPoll = null;
+async function updateStatusUI(phone) {
+  const container = document.getElementById("chatStatusContainer");
+  const dot       = document.getElementById("statusDot");
+  const text      = document.getElementById("statusText");
+  if (!container || !dot || !text) return;
+
+  try {
+    const data = await Inbox.getContactStatus(phone);
+    container.style.display = "flex";
+    if (data.status === "online") {
+      dot.className = "status-dot online";
+      text.textContent = "Online";
+    } else if (data.status === "recent") {
+      dot.className = "status-dot online"; // recent can also be green but different text
+      text.textContent = "Recently active";
+    } else {
+      dot.className = "status-dot";
+      text.textContent = data.last_seen ? `Last seen: ${timeAgo(data.last_seen)}` : "Offline";
+    }
+
+    // Restart polling
+    if (statusPoll) clearTimeout(statusPoll);
+    if (currentPhone === phone) {
+      statusPoll = setTimeout(() => updateStatusUI(phone), 30000); // Pool status every 30s
+    }
+  } catch(_) {}
+}
 
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -158,6 +231,19 @@ async function loadMessages(phone, scroll = true) {
   } catch(e) { console.error(e); }
 }
 window.loadMessages = loadMessages;
+
+window.deleteMsg = async function(id) {
+  if (!confirm("Are you sure you want to delete this message?")) return;
+  try {
+    await Inbox.deleteMessage(id);
+    showToast("Message deleted", "success");
+    // Refresh UI
+    allMessages = allMessages.filter(m => m.id !== id);
+    renderMessages(allMessages, false);
+  } catch(e) {
+    showToast(e.message || "Failed to delete message", "error");
+  }
+};
 
 function renderMessages(msgs, scroll = true) {
   const el = document.getElementById("chatMessages");
@@ -288,6 +374,7 @@ function renderMessages(msgs, scroll = true) {
         ${statusIcon}
         ${starBtn}
         ${copyBtn}
+        <button class="delete-msg-btn" onclick="window.deleteMsg(${m.id})" title="Delete Message">🗑️</button>
         <button class="forward-btn-inline"
                 onclick="forwardMsg(${m.id},'${safeContent}','${m.message_type}')"
                 style="background:none;border:none;color:var(--text-light);cursor:pointer;font-size:14px;padding:0 2px;"

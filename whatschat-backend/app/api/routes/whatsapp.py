@@ -11,7 +11,7 @@ from app.core.security import get_current_user
 from app.core.config import settings
 from app.models.user import (
     User, InboxMessage, MessageLog, MessageDirection,
-    AutoReply, BusinessSettings, InteractiveMenu
+    AutoReply, BusinessSettings, InteractiveMenu, Contact
 )
 from app.schemas.schemas import WhatsAppConnectRequest, SendMessageRequest
 from app.services.whatsapp_service import (
@@ -240,6 +240,31 @@ async def webhook_receive(request: Request, db: Session = Depends(get_db)):
                     )
                     db.add(log)
                     db.commit()
+
+                    # ── Auto-save Contact (with country code) ────────────────
+                    try:
+                        # Normalise: ensure number starts with +
+                        normalised_phone = from_phone if from_phone.startswith("+") else f"+{from_phone}"
+                        existing_contact = db.query(Contact).filter(
+                            Contact.user_id == user.id,
+                            Contact.phone   == normalised_phone,
+                        ).first()
+                        if not existing_contact:
+                            new_contact = Contact(
+                                user_id = user.id,
+                                name    = customer_name or normalised_phone,
+                                phone   = normalised_phone,
+                                status  = "active",
+                            )
+                            db.add(new_contact)
+                            db.commit()
+                            logger.info(f"💾 Auto-saved contact: {normalised_phone} ({customer_name})")
+                        elif customer_name and existing_contact.name == existing_contact.phone:
+                            # Update name if it was previously just the phone number
+                            existing_contact.name = customer_name
+                            db.commit()
+                    except Exception as ce:
+                        logger.warning(f"Contact auto-save failed: {ce}")
 
                     logger.info(f"📨 Incoming message from {from_phone}: {content or msg_type}")
 
