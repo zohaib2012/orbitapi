@@ -242,6 +242,7 @@ class MessageLog(Base):
     sent_at             = Column(DateTime(timezone=True), server_default=func.now())
     delivered_at        = Column(DateTime(timezone=True), nullable=True)
     read_at             = Column(DateTime(timezone=True), nullable=True)
+    duration            = Column(Integer, nullable=True)  # Audio duration in seconds
 
     user = relationship("User", foreign_keys=[user_id])
 
@@ -375,6 +376,7 @@ class InboxMessage(Base):
     quoted_message_id   = Column(Integer, nullable=True)
     whatsapp_status     = Column(String(20), default="sent")  # sent/delivered/read
     received_at         = Column(DateTime(timezone=True), server_default=func.now())
+    duration            = Column(Integer, nullable=True)  # Audio duration in seconds
 
     user = relationship("User", foreign_keys=[user_id])
 

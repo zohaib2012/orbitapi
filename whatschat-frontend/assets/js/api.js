@@ -38,13 +38,15 @@ async function apiFetch(endpoint, options = {}, _isRetry = false) {
               _refreshQueue.forEach(fn => fn(refreshData.access_token));
               _refreshQueue = [];
               _isRefreshing = false;
-              // Retry original request with new token
               return apiFetch(endpoint, options, true);
             } else {
-              // Refresh failed — logout
               _isRefreshing = false;
-              removeToken();
-              window.location.href = "auth/login.html";
+              _refreshQueue = [];
+              // If we are on the login page or registering, don't redirect
+              if (!["login.html", "register.html"].some(p => window.location.pathname.includes(p))) {
+                removeToken();
+                window.location.href = "auth/login.html";
+              }
               return;
             }
           } catch (_) {
@@ -113,6 +115,20 @@ const Auth = {
       window.location.href = "auth/login.html";
     }
   },
+
+  async refresh() {
+    const token = getToken();
+    if (!token) return;
+    try {
+      const data = await apiFetch("/auth/refresh", { method: "POST" });
+      setToken(data.access_token);
+      if (data.user) setUser(data.user);
+      return data;
+    } catch(e) {
+      console.error("Refresh failed:", e);
+      throw e;
+    }
+  }
 };
 
 const Contacts = {
@@ -169,7 +185,7 @@ const WhatsApp = {
 
 // ── INBOX — Updated ──────────────────────────────────
 const Inbox = {
-  getConversations: () => apiFetch("/inbox/conversations"),
+  getConversations: (p={}) => apiFetch("/inbox/conversations?" + new URLSearchParams(p)),
   getMessages: (phone) => apiFetch(`/inbox/conversation/${encodeURIComponent(phone)}`),
   getUnreadCount: () => apiFetch("/inbox/unread-count"),
   reply: (phone, message, type = "text", mediaUrl = null, quotedMsgId = null) =>

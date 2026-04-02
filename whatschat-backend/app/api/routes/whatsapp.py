@@ -178,6 +178,7 @@ async def webhook_receive(request: Request, db: Session = Depends(get_db)):
                     # ── Extract content ────────────────────────────────────
                     content   = None
                     media_url = None
+                    duration  = None
 
                     # Quoted message context
                     context_msg_id = msg.get("context", {}).get("id", None)
@@ -199,7 +200,9 @@ async def webhook_receive(request: Request, db: Session = Depends(get_db)):
                             med = await download_whatsapp_media(media_id, user.whatsapp_token)
                             media_url = f"{settings.BASE_URL}/uploads/{med['filename']}" if med else None
                     elif msg_type == "audio":
-                        media_id = msg.get("audio", {}).get("id", "")
+                        audio_obj = msg.get("audio", {})
+                        media_id  = audio_obj.get("id", "")
+                        duration  = audio_obj.get("duration", None)
                         if media_id:
                             from app.services.whatsapp_service import download_whatsapp_media
                             med = await download_whatsapp_media(media_id, user.whatsapp_token)
@@ -223,6 +226,7 @@ async def webhook_receive(request: Request, db: Session = Depends(get_db)):
                         media_url           = media_url,
                         whatsapp_message_id = msg_id,
                         is_read             = False,
+                        duration            = duration,
                     )
                     db.add(inbox_msg)
 
@@ -237,6 +241,7 @@ async def webhook_receive(request: Request, db: Session = Depends(get_db)):
                         whatsapp_message_id = msg_id,
                         is_delivered        = True,
                         is_read             = False,
+                        duration            = duration,
                     )
                     db.add(log)
                     db.commit()

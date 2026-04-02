@@ -65,6 +65,8 @@ def get_inbox(
 
 @router.get("/conversations")
 def get_conversations(
+    skip:         int     = 0,
+    limit:        int     = 50,
     db:           Session = Depends(get_db),
     current_user: User    = Depends(get_current_user),
 ):
@@ -77,7 +79,10 @@ def get_conversations(
      .group_by(InboxMessage.customer_phone).subquery()
 
     conversations = []
-    for row in db.query(subq).order_by(desc(subq.c.last_msg_time)).limit(50).all():
+    # Use skip and limit for pagination
+    rows = db.query(subq).order_by(desc(subq.c.last_msg_time)).offset(skip).limit(limit).all()
+    
+    for row in rows:
         last_msg = db.query(InboxMessage).filter(
             InboxMessage.user_id        == current_user.id,
             InboxMessage.customer_phone == row.customer_phone,
@@ -109,6 +114,7 @@ def get_conversations(
             "unread_count":      unread,
             "is_favorite":       is_fav,
             "direction":         last_msg.direction       if last_msg else None,
+            "duration":          getattr(last_msg, "duration", None),
         })
     return conversations
 
@@ -436,6 +442,7 @@ async def send_media_file(
 @router.post("/send-audio-record")
 async def send_audio_record(
     to:                str        = Form(...),
+    duration:          Optional[int] = Form(None),
     quoted_message_id: Optional[str] = Form(None),
     file:              UploadFile = File(...),
     db:                Session    = Depends(get_db),
@@ -526,6 +533,7 @@ async def send_audio_record(
         quoted_message_id   = quoted_id,
         whatsapp_message_id = wa_msg_id,
         whatsapp_status     = "sent",
+        duration            = duration,
     ))
     db.add(MessageLog(
         user_id             = current_user.id,
@@ -535,6 +543,7 @@ async def send_audio_record(
         content             = "Voice message",
         media_url           = public_url,
         whatsapp_message_id = wa_msg_id,
+        duration            = duration,
     ))
     db.commit()
 
@@ -578,4 +587,5 @@ def _msg_dict(m: InboxMessage) -> dict:
         "quoted_message_id":   getattr(m, "quoted_message_id", None),
         "whatsapp_status":     getattr(m, "whatsapp_status", "sent"),
         "received_at":         m.received_at.isoformat() if m.received_at else None,
+        "duration":            getattr(m, "duration", None),
     }

@@ -3,10 +3,17 @@
 
 let currentPhone      = null;
 let conversations     = [];
+let filteredConvs     = [];
 let allMessages       = [];
 let selectedMedia     = null;
 let selectedMediaType = null;
 let showStarredOnly   = false;
+
+// ── Pagination state ─────────────────────────────────────────────────────────
+let convSkip          = 0;
+const convLimit       = 50;
+let hasMoreConvs      = true;
+let isLoadingConvs    = false;
 
 // ── Audio Recorder state ─────────────────────────────────────────────────────
 let mediaRecorder = null;
@@ -59,7 +66,11 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   // Auto-refresh every 5 seconds (faster for real-time feel)
   setInterval(async () => {
-    await loadConversations();
+    const listEl = document.getElementById("convList");
+    // Only refresh if at the top and not loading
+    if (listEl && listEl.scrollTop < 50 && !isLoadingConvs) {
+      await loadConversations();
+    }
     if (currentPhone) await loadMessages(currentPhone, false);
     await loadUnreadBadge();
   }, 5000);
@@ -75,19 +86,38 @@ window.addEventListener("DOMContentLoaded", async () => {
 // CONVERSATIONS
 // ═══════════════════════════════════════════════════════════════════════════
 
-async function loadConversations() {
+async function loadConversations(append = false) {
+  if (isLoadingConvs) return;
+  if (!append) {
+    convSkip = 0;
+    hasMoreConvs = true;
+    conversations = [];
+  }
+  if (!hasMoreConvs) return;
+
+  isLoadingConvs = true;
   try {
-    conversations = await Inbox.getConversations() || [];
-    renderConversations(conversations);
+    const newList = await Inbox.getConversations({ skip: convSkip, limit: convLimit }) || [];
+    if (newList.length < convLimit) hasMoreConvs = false;
+    
+    conversations = append ? [...conversations, ...newList] : newList;
+    convSkip += newList.length;
+    
+    filterConversations(document.getElementById("convSearch")?.value || "");
   } catch(e) {
-    document.getElementById("convList").innerHTML =
-      `<div style="text-align:center;padding:30px;color:var(--text-light);">Could not load conversations</div>`;
+    console.error(e);
+    if (!append) {
+      document.getElementById("convList").innerHTML =
+        `<div style="text-align:center;padding:30px;color:var(--text-light);">Could not load conversations</div>`;
+    }
+  } finally {
+    isLoadingConvs = false;
   }
 }
 
 function renderConversations(list) {
   const el = document.getElementById("convList");
-  if (!list.length) {
+  if (!list.length && convSkip <= convLimit) {
     el.innerHTML = `<div class="conv-empty">
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
         <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
@@ -97,7 +127,8 @@ function renderConversations(list) {
     </div>`;
     return;
   }
-  el.innerHTML = list.map(c => {
+
+  const html = list.map(c => {
     const rawPhone = c.customer_phone || "";
     const phone    = rawPhone.startsWith("+") ? rawPhone : `+${rawPhone}`;
     const name     = c.customer_name || phone;
@@ -124,6 +155,20 @@ function renderConversations(list) {
       </div>
     </div>`;
   }).join("");
+
+  el.innerHTML = html;
+  
+  // Add scroll listener for infinite scroll if not already added
+  if (!el.dataset.scrollInit) {
+    el.dataset.scrollInit = "true";
+    el.addEventListener("scroll", () => {
+      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
+        if (!isLoadingConvs && hasMoreConvs && currentConvTab === 'all') {
+          loadConversations(true);
+        }
+      }
+    });
+  }
 }
 
 let currentConvTab = 'all';
@@ -148,10 +193,12 @@ window.filterConversations = function(q) {
   if (q) {
     filtered = filtered.filter(c =>
       (c.customer_name || "").toLowerCase().includes(q.toLowerCase()) ||
-      c.customer_phone.includes(q)
+      (c.customer_phone || "").toLowerCase().includes(q.toLowerCase())
     );
   }
-  renderConversations(filtered);
+  
+  filteredConvs = filtered;
+  renderConversations(filteredConvs);
 };
 
 window.toggleFavConv = async function(phone) {
@@ -326,9 +373,11 @@ function renderMessages(msgs, scroll = true) {
       } else if (m.message_type === "video") {
         html += `<div class="msg-media"><video controls src="${src}" preload="metadata" style="max-width:280px;"></video></div>`;
       } else if (m.message_type === "audio") {
+        const durText = m.duration ? `<span class="audio-duration-label">${Math.floor(m.duration/60)}:${String(m.duration%60).padStart(2,'0')}</span>` : "";
         html += `<div class="msg-media msg-audio-wrap">
                    <span style="font-size:18px;">🎵</span>
                    <audio controls src="${src}" preload="metadata" style="max-width:200px;height:32px;"></audio>
+                   ${durText}
                  </div>`;
       } else {
         const docName = src.split('/').pop() || "Document";
@@ -358,13 +407,17 @@ function renderMessages(msgs, scroll = true) {
     // Status ticks (outbound only)
     let statusIcon = "";
     if (m.direction === "outbound") {
-      const st = m.whatsapp_status || "sent";
-      if (st === "read") {
-        statusIcon = `<span class="msg-ticks read" title="Read">✓✓</span>`;
-      } else if (st === "delivered") {
-        statusIcon = `<span class="msg-ticks delivered" title="Delivered">✓✓</span>`;
+      if (m.isPending) {
+        statusIcon = `<div class="msg-loader"></div>`;
       } else {
-        statusIcon = `<span class="msg-ticks sent" title="Sent">✓</span>`;
+        const st = m.whatsapp_status || "sent";
+        if (st === "read") {
+          statusIcon = `<span class="msg-ticks read" title="Read">✓✓</span>`;
+        } else if (st === "delivered") {
+          statusIcon = `<span class="msg-ticks delivered" title="Delivered">✓✓</span>`;
+        } else {
+          statusIcon = `<span class="msg-ticks sent" title="Sent">✓</span>`;
+        }
       }
     }
 
@@ -548,15 +601,43 @@ window.sendMessage = async function() {
 
   if (!text && !selectedMedia) return;
 
+  // ── OPTIMISTIC UI ──
+  const tempId = Date.now();
+  const tempMsg = {
+    id: tempId,
+    content: text,
+    direction: 'outbound',
+    message_type: selectedMedia ? selectedMediaType : 'text',
+    isPending: true,
+    received_at: new Date().toISOString(),
+    customer_phone: currentPhone,
+    quoted_message_id: replyTo?.id || null
+  };
+
+  // For media, add a temporary local URL for preview
+  if (selectedMedia) {
+    tempMsg.media_url = URL.createObjectURL(selectedMedia);
+  }
+
+  // Push and render instantly
+  allMessages.push(tempMsg);
+  renderMessages(allMessages, true);
+  
+  if (!selectedMedia) {
+    input.value = "";
+    input.style.height = "auto";
+  }
+
   try {
     if (selectedMedia) {
-      showToast("Uploading...", "info");
       const fd = new FormData();
       fd.append("to",         currentPhone);
       fd.append("media_type", selectedMediaType);
       fd.append("caption",    text);
       fd.append("file",       selectedMedia);
       if (replyTo) fd.append("quoted_message_id", replyTo.id);
+      
+      const currentSelectedMedia = selectedMedia;
       cancelReply();
       removeMedia();
 
@@ -565,13 +646,16 @@ window.sendMessage = async function() {
         headers: { "Authorization": `Bearer ${getToken()}` },
         body:    fd,
       });
+
+      // Cleanup local URL
+      URL.revokeObjectURL(tempMsg.media_url);
+
       if (!r.ok) {
         const err = await r.json().catch(() => ({}));
         throw new Error(err.detail || "Media send failed");
       }
       input.value = "";
       input.style.height = "auto";
-      showToast("Media bhej diya ✅", "success");
       userScrolledUp = false;
       await loadMessages(currentPhone, true);
       await loadConversations();
@@ -582,13 +666,14 @@ window.sendMessage = async function() {
     cancelReply();
 
     await Inbox.reply(currentPhone, text, "text", null, quotedId);
-    input.value = "";
-    input.style.height = "auto";
     userScrolledUp = false;
     await loadMessages(currentPhone, true);
     await loadConversations();
 
   } catch(e) {
+    // Remove the failed optimistic message
+    allMessages = allMessages.filter(m => m.id !== tempId);
+    renderMessages(allMessages, false);
     showToast(e.message || "Send failed", "error");
   }
 };
@@ -730,11 +815,29 @@ window.stopRecording = function() {
 async function sendRecordedAudio(blob) {
   if (!currentPhone) return;
 
-  showToast("Voice message bhej raha hai...", "info");
+  // ── OPTIMISTIC UI ──
+  const tempId = Date.now();
+  const localUrl = URL.createObjectURL(blob);
+  const tempMsg = {
+    id: tempId,
+    content: "",
+    direction: 'outbound',
+    message_type: 'audio',
+    isPending: true,
+    received_at: new Date().toISOString(),
+    customer_phone: currentPhone,
+    media_url: localUrl,
+    duration: recordSeconds,
+    quoted_message_id: replyTo?.id || null
+  };
+
+  allMessages.push(tempMsg);
+  renderMessages(allMessages, true);
 
   const fd = new FormData();
-  fd.append("to",   currentPhone);
-  fd.append("file", blob, "voice.ogg");
+  fd.append("to",       currentPhone);
+  fd.append("file",     blob, "voice.ogg");
+  fd.append("duration", recordSeconds);
   if (replyTo) fd.append("quoted_message_id", replyTo.id);
   cancelReply();
 
@@ -744,15 +847,19 @@ async function sendRecordedAudio(blob) {
       headers: { "Authorization": `Bearer ${getToken()}` },
       body:    fd,
     });
+    
+    URL.revokeObjectURL(localUrl);
+
     if (!r.ok) {
       const err = await r.json().catch(() => ({}));
       throw new Error(err.detail || "Audio send failed");
     }
-    showToast("Voice message bhej diya ✅", "success");
     userScrolledUp = false;
     await loadMessages(currentPhone, true);
     await loadConversations();
   } catch(e) {
+    allMessages = allMessages.filter(m => m.id !== tempId);
+    renderMessages(allMessages, false);
     showToast(e.message || "Voice message send nahi hua", "error");
     console.error(e);
   }

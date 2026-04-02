@@ -27,6 +27,11 @@ def main():
         add_column_if_missing(conn, "inbox_messages", "is_starred", "BOOLEAN", "false")
         add_column_if_missing(conn, "inbox_messages", "quoted_message_id", "INTEGER", "NULL")
         add_column_if_missing(conn, "inbox_messages", "whatsapp_status", "VARCHAR(20)", "'sent'")
+        add_column_if_missing(conn, "inbox_messages", "duration", "INTEGER", "NULL")
+
+        # ── MessageLog table ──
+        print("\n📋 message_logs:")
+        add_column_if_missing(conn, "message_logs", "duration", "INTEGER", "NULL")
 
         # ── BusinessSettings table ──
         print("\n📋 business_settings:")
