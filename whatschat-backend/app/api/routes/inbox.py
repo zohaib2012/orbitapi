@@ -459,7 +459,7 @@ async def send_audio_record(
 
     # ── AUDIO CONVERSION VIA FFMPEG (IF AVAILABLE) ──
     try:
-        with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as tmp_in:
+        with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as tmp_in:
             tmp_in.write(file_bytes)
             tmp_in_path = tmp_in.name
         tmp_out_path = tmp_in_path + ".ogg"
@@ -475,12 +475,12 @@ async def send_audio_record(
             ext = "ogg"
         else:
             final_bytes = file_bytes
-            wa_mime = "audio/mp4"  # Fallback
-            ext = "mp4"
+            wa_mime = "audio/ogg; codecs=opus"  # Flutter sends OGG
+            ext = "ogg"
     except Exception:
         final_bytes = file_bytes
-        wa_mime = "audio/mp4" # Fallback
-        ext = "mp4"
+        wa_mime = "audio/ogg; codecs=opus"  # Flutter sends OGG
+        ext = "ogg"
     finally:
         if 'tmp_in_path' in locals() and os.path.exists(tmp_in_path): os.remove(tmp_in_path)
         if 'tmp_out_path' in locals() and os.path.exists(tmp_out_path): os.remove(tmp_out_path)
