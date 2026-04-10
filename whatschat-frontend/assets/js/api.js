@@ -351,14 +351,7 @@ function formatTime(iso) {
 // =====================================================
 
 function isPlanActive() {
-  const user = getUser();
-  if (!user) return false;
-  if (user.role === "admin" || user.is_admin === true) return true;
-  const plan   = (user.plan   || "free").toLowerCase();
-  const status = (user.subscription_status || "").toLowerCase();
-  if (plan === "free" || !plan) return false;
-  if (status === "pending") return false;
-  return status === "active" || status === "approved" || status === "";
+  return true;
 }
 
 function showSubscriptionGate() {

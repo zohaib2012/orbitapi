@@ -7,10 +7,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.core.database import Base, engine
+from app.api.routes import admin
 from app.api.routes import (
     auth, contacts, campaigns, chatbot,
     analytics, team, whatsapp
 )
+from app.api.routes import admin
 from app.api.routes import (
     message_log, auto_replies, templates,
     subscription_requests, settings as settings_route,
@@ -54,6 +56,7 @@ app.include_router(message_log.router,            prefix="/api")
 app.include_router(auto_replies.router,           prefix="/api")
 app.include_router(templates.router,              prefix="/api")
 app.include_router(subscription_requests.router,  prefix="/api")
+app.include_router(admin.router,                   prefix="/api")
 app.include_router(settings_route.router,         prefix="/api")
 app.include_router(inbox.router,                  prefix="/api")
 app.include_router(media.router,                  prefix="/api")

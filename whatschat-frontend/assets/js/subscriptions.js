@@ -1,6 +1,14 @@
 // subscriptions.js — Path: whatschat-frontend/assets/js/subscriptions.js
 
 document.addEventListener("DOMContentLoaded", async () => {
+  // Fresh user data fetch
+  try {
+    const token = localStorage.getItem('wc_token');
+    const res = await fetch('https://rajacloud.online/api/auth/me', {
+      headers: { 'Authorization': `Bearer ${token}` }, cache: 'no-store'
+    });
+    if (res.ok) { const u = await res.json(); localStorage.setItem('wc_user', JSON.stringify(u)); }
+  } catch(e) {}
   Auth.requireAuthOnly(); // ← sirf login check, plan gate nahi (warna user plan choose nahi kar payega)
   fillSidebarUser();
   loadCurrentPlan();

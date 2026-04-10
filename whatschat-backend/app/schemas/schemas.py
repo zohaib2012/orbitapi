@@ -40,6 +40,7 @@ class UserOut(BaseModel):
     plan: PlanType
     whatsapp_connected: bool
     is_verified: bool
+    is_approved: bool
     created_at: datetime
 
     class Config:

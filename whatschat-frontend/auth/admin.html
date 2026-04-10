@@ -195,7 +195,7 @@ tr:hover td{background:#fafafa;}
         </select>
       </div>
       <div class="table-card"><table>
-        <thead><tr><th>User</th><th>Email</th><th>Plan</th><th>Joined</th><th>Actions</th></tr></thead>
+        <thead><tr><th>User</th><th>Email</th><th>Plan</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
         <tbody id="usersTable"><tr><td colspan="5" style="text-align:center;padding:40px;color:#9ca3af;">Loading...</td></tr></tbody>
       </table></div>
     </div>
@@ -259,7 +259,7 @@ tr:hover td{background:#fafafa;}
 <div class="toast" id="toast"></div>
 
 <script>
-const API = 'https://api.rajacloud.online/api';
+const API = 'https://rajacloud.online/api';
 let adminToken = null, allUsers = [], currentRequestId = null, currentUserId = null;
 
 async function adminLogin() {
@@ -387,14 +387,42 @@ async function loadUsers(){
 }
 function renderUsers(u){
   const tb=document.getElementById('usersTable');
-  if(!u.length){tb.innerHTML='<tr><td colspan="5" style="text-align:center;padding:40px;color:#9ca3af;">Koi user nahi mila</td></tr>';return;}
+  if(!u.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:40px;color:#9ca3af;">Koi user nahi mila</td></tr>';return;}
   tb.innerHTML=u.map(x=>`<tr>
-    <td><div class="user-info-cell"><div class="user-avatar">${(x.full_name||x.email||'U')[0].toUpperCase()}</div><div style="font-weight:600;font-size:13.5px;">${x.full_name||'—'}</div></div></td>
+    <td><div class="user-info-cell"><div class="user-avatar">${(x.business_name||x.email||'U')[0].toUpperCase()}</div><div style="font-weight:600;font-size:13.5px;">${x.business_name||'—'}</div></div></td>
     <td style="font-size:13px;color:#6b7280;">${x.email}</td>
     <td><span class="badge badge-${x.plan||'free'}">${cap(x.plan||'free')}</span></td>
+    <td style="font-size:13px;">${x.is_approved?'<span style="color:#25D366;font-weight:700;">✅ Approved</span>':'<span style="color:#f59e0b;font-weight:700;">⏳ Pending</span>'}</td>
     <td style="font-size:13px;color:#6b7280;">${fmt(x.created_at)}</td>
-    <td><button class="btn btn-view" onclick="openPlanModal(${x.id},'${x.email}','${x.plan||'free'}')">✏️ Plan Change</button></td>
+    <td style="display:flex;gap:6px;flex-wrap:wrap;">
+      ${!x.is_approved?`<button class="btn btn-approve" onclick="approveUser(${x.id})" style="font-size:12px;padding:5px 10px;">✅ Approve</button>`:''}
+      ${x.is_approved?`<button class="btn" onclick="declineUser(${x.id})" style="font-size:12px;padding:5px 10px;background:#ef4444;color:white;">❌ Decline</button>`:''}
+      <button class="btn btn-view" onclick="openPlanModal(${x.id},'${x.email}','${x.plan||'free'}')">✏️ Edit</button>
+      <button class="btn" onclick="deleteUser(${x.id},'${x.email}')" style="font-size:12px;padding:5px 10px;background:#6b7280;color:white;">🗑️ Delete</button>
+    </td>
   </tr>`).join('');
+}
+async function approveUser(id){
+  try{
+    const res=await fetch(`${API}/auth/admin/users/${id}/approve`,{method:'POST',headers:{'Authorization':'Bearer '+adminToken}});
+    if(res.ok){toast('✅ User approved!','success');loadUsers();}
+    else toast('Approve nahi hua','error');
+  }catch(e){toast('Error','error');}
+}
+async function declineUser(id){
+  try{
+    const res=await fetch(`${API}/auth/admin/users/${id}/decline`,{method:'POST',headers:{'Authorization':'Bearer '+adminToken}});
+    if(res.ok){toast('❌ User declined!','error');loadUsers();}
+    else toast('Decline nahi hua','error');
+  }catch(e){toast('Error','error');}
+}
+async function deleteUser(id,email){
+  if(!confirm(`${email} ko delete karna chahte ho?`))return;
+  try{
+    const res=await fetch(`${API}/auth/admin/users/${id}`,{method:'DELETE',headers:{'Authorization':'Bearer '+adminToken}});
+    if(res.ok){toast('🗑️ User deleted!','success');loadUsers();}
+    else toast('Delete nahi hua','error');
+  }catch(e){toast('Error','error');}
 }
 function filterUsers(){
   const q=document.getElementById('userSearch').value.toLowerCase();

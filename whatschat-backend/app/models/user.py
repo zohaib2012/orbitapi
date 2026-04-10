@@ -61,6 +61,7 @@ class User(Base):
     phone = Column(String(30), nullable=True)
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
+    is_approved = Column(Boolean, default=False)
     plan = Column(Enum(PlanType), default=PlanType.starter)
     whatsapp_connected = Column(Boolean, default=False)
     whatsapp_phone_id = Column(String(100), nullable=True)
