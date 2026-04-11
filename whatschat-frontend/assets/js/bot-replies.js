@@ -394,14 +394,50 @@ function renderFollowUps() {
                   onchange="updateFollowUp('${itemId}','content',this.value)"
                   style="width:100%;min-height:50px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;resize:vertical;">${fu.content || ""}</textarea>
         ${fu.type === "media" ? `
-          <input type="text" placeholder="Media URL" value="${fu.media_url || ""}"
-                 onchange="updateFollowUp('${itemId}','media_url',this.value)"
-                 style="width:100%;margin-top:4px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+          <div style="margin-top:6px;">
+            <input type="file" id="fuFile_${itemId}" accept="image/*,video/*,audio/*"
+                   onchange="uploadFollowUpMedia('${itemId}', this)"
+                   style="display:none;">
+            <button type="button" onclick="document.getElementById('fuFile_${itemId}').click()"
+                    style="padding:7px 14px;background:#25D366;color:white;border:none;border-radius:6px;font-size:13px;cursor:pointer;">
+                    📎 File Choose Karo
+            </button>
+            <span id="fuFileName_${itemId}" style="font-size:12px;color:#6b7280;margin-left:8px;">${fu.media_url ? '✅ File uploaded' : 'Koi file nahi'}</span>
+            <input type="hidden" id="fuUrl_${itemId}" value="${fu.media_url || ""}">
+          </div>
         ` : ""}
       </div>
     </div>`;
   }).join("");
 }
+
+window.uploadFollowUpMedia = async function(itemId, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const nameEl = document.getElementById('fuFileName_' + itemId);
+  nameEl.textContent = '⏳ Uploading...';
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = localStorage.getItem('wc_token');
+    const res = await fetch('/api/media/upload', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token },
+      body: formData
+    });
+    const data = await res.json();
+    const url = data.url || data.media_url || data.file_url;
+    if (url) {
+      document.getElementById('fuUrl_' + itemId).value = url;
+      updateFollowUp(itemId, 'media_url', url);
+      nameEl.textContent = '✅ ' + file.name;
+    } else {
+      nameEl.textContent = '❌ Upload failed';
+    }
+  } catch(e) {
+    nameEl.textContent = '❌ Error: ' + e.message;
+  }
+};
 
 window.updateFollowUp = function(itemId, field, value) {
   if (!window._editingFollowUps) window._editingFollowUps = {};
