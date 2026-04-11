@@ -430,6 +430,9 @@ window.uploadFollowUpMedia = async function(itemId, input) {
     if (url) {
       document.getElementById('fuUrl_' + itemId).value = url;
       updateFollowUp(itemId, 'media_url', url);
+      // media_type bhi save karo
+      const mtype = file.type.startsWith('image') ? 'image' : file.type.startsWith('video') ? 'video' : 'audio';
+      updateFollowUp(itemId, 'media_type', mtype);
       nameEl.textContent = '✅ ' + file.name;
     } else {
       nameEl.textContent = '❌ Upload failed';
