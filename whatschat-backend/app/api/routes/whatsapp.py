@@ -1,4 +1,5 @@
 import logging
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
@@ -17,7 +18,8 @@ from app.schemas.schemas import WhatsAppConnectRequest, SendMessageRequest
 from app.services.whatsapp_service import (
     send_whatsapp_message, send_whatsapp_media,
     send_whatsapp_template, send_whatsapp_interactive_list,
-    send_whatsapp_interactive_buttons
+    send_whatsapp_interactive_buttons,
+    upload_media_to_whatsapp, send_whatsapp_media_by_id,
 )
 
 logger = logging.getLogger(__name__)
@@ -349,9 +351,14 @@ async def _send_welcome_message(db: Session, user: User, phone: str):
     if not welcome_enabled:
         return
 
-    welcome_text      = biz_settings.welcome_message
-    welcome_media_url = getattr(biz_settings, "welcome_media_url", None)
+    welcome_text       = biz_settings.welcome_message
+    welcome_media_url  = getattr(biz_settings, "welcome_media_url", None)
     welcome_media_type = getattr(biz_settings, "welcome_media_type", None)
+
+    # Fix double URL e.g. "https://api.rajacloud.onlinehttps://api.rajacloud.online/uploads/..."
+    if welcome_media_url and welcome_media_url.count("http") > 1:
+        idx = welcome_media_url.rfind("http")
+        welcome_media_url = welcome_media_url[idx:]
 
     if not welcome_text and not welcome_media_url:
         return
@@ -359,10 +366,68 @@ async def _send_welcome_message(db: Session, user: User, phone: str):
     logger.info(f"👋 Sending welcome message to {phone}")
 
     try:
-        can_bundle_media = welcome_media_type in ["image", "video", "document"]
+        has_media = bool(welcome_media_url and welcome_media_type and welcome_media_type not in ("text", ""))
 
-        # Bundle text and media if possible
-        if welcome_media_url and welcome_media_type and welcome_media_type != "text" and can_bundle_media:
+        if has_media and welcome_media_type in ("audio", "video"):
+            # ── Audio / Video: upload-first approach ──────────────────────
+            # WhatsApp Cloud API rejects audio/video via URL unreliably.
+            # Download file → upload to WhatsApp → send by media_id.
+
+            # For audio: send text separately (audio has no caption)
+            if welcome_media_type == "audio" and welcome_text:
+                res_text = await send_whatsapp_message(
+                    user.whatsapp_phone_id, user.whatsapp_token,
+                    phone, welcome_text
+                )
+                db.add(InboxMessage(
+                    user_id=user.id, customer_phone=phone,
+                    direction=MessageDirection.outbound,
+                    message_type="text", content=welcome_text,
+                    whatsapp_message_id=res_text.get("message_id", ""),
+                    whatsapp_status="sent",
+                ))
+
+            # Download the file from stored URL
+            async with httpx.AsyncClient(timeout=60) as client:
+                file_resp = await client.get(welcome_media_url)
+            file_bytes = file_resp.content
+            mime_type  = file_resp.headers.get("content-type", "").split(";")[0].strip()
+
+            # Fallback MIME from file extension
+            if not mime_type or mime_type == "application/octet-stream":
+                ext_map = {
+                    "mp3": "audio/mpeg", "ogg": "audio/ogg",
+                    "aac": "audio/aac",  "m4a": "audio/mp4", "wav": "audio/wav",
+                    "mp4": "video/mp4",  "3gp": "video/3gpp",
+                }
+                ext       = welcome_media_url.rsplit(".", 1)[-1].lower() if "." in welcome_media_url else ""
+                mime_type = ext_map.get(ext, "audio/mpeg" if welcome_media_type == "audio" else "video/mp4")
+
+            ext      = welcome_media_url.rsplit(".", 1)[-1] if "." in welcome_media_url else welcome_media_type
+            filename = f"welcome_{welcome_media_type}.{ext}"
+
+            media_id = await upload_media_to_whatsapp(
+                user.whatsapp_phone_id, user.whatsapp_token,
+                file_bytes, mime_type, filename
+            )
+
+            # For video: caption = welcome_text (bundled); for audio: no caption
+            caption = (welcome_text or "") if welcome_media_type == "video" else ""
+            result  = await send_whatsapp_media_by_id(
+                user.whatsapp_phone_id, user.whatsapp_token,
+                phone, welcome_media_type, media_id, caption
+            )
+            db.add(InboxMessage(
+                user_id=user.id, customer_phone=phone,
+                direction=MessageDirection.outbound,
+                message_type=welcome_media_type,
+                content=caption, media_url=welcome_media_url,
+                whatsapp_message_id=result.get("message_id", ""),
+                whatsapp_status="sent",
+            ))
+
+        elif has_media:
+            # ── Image / Document: URL-based with caption (reliable) ───────
             result = await send_whatsapp_media(
                 user.whatsapp_phone_id, user.whatsapp_token,
                 phone, welcome_media_type,
@@ -376,36 +441,20 @@ async def _send_welcome_message(db: Session, user: User, phone: str):
                 whatsapp_message_id=result.get("message_id", ""),
                 whatsapp_status="sent",
             ))
-        else:
-            # Text welcome message (Not bundled)
-            if welcome_text:
-                result = await send_whatsapp_message(
-                    user.whatsapp_phone_id, user.whatsapp_token,
-                    phone, welcome_text
-                )
-                db.add(InboxMessage(
-                    user_id=user.id, customer_phone=phone,
-                    direction=MessageDirection.outbound,
-                    message_type="text", content=welcome_text,
-                    whatsapp_message_id=result.get("message_id", ""),
-                    whatsapp_status="sent",
-                ))
 
-            # Media welcome message (Not bundled)
-            if welcome_media_url and welcome_media_type and welcome_media_type != "text":
-                result = await send_whatsapp_media(
-                    user.whatsapp_phone_id, user.whatsapp_token,
-                    phone, welcome_media_type,
-                    welcome_media_url, ""
-                )
-                db.add(InboxMessage(
-                    user_id=user.id, customer_phone=phone,
-                    direction=MessageDirection.outbound,
-                    message_type=welcome_media_type,
-                    content="", media_url=welcome_media_url,
-                    whatsapp_message_id=result.get("message_id", ""),
-                    whatsapp_status="sent",
-                ))
+        elif welcome_text:
+            # ── Text only ─────────────────────────────────────────────────
+            result = await send_whatsapp_message(
+                user.whatsapp_phone_id, user.whatsapp_token,
+                phone, welcome_text
+            )
+            db.add(InboxMessage(
+                user_id=user.id, customer_phone=phone,
+                direction=MessageDirection.outbound,
+                message_type="text", content=welcome_text,
+                whatsapp_message_id=result.get("message_id", ""),
+                whatsapp_status="sent",
+            ))
 
         db.commit()
 
