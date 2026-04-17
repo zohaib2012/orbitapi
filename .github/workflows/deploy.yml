@@ -1,0 +1,43 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 187.127.133.182
+          username: root
+          key: ${{ secrets.DEPLOY_KEY }}
+          script: |
+            cd /root/whatschat
+
+            # Pull latest code
+            git pull origin main
+
+            # Backend: install new dependencies if any
+            cd whatschat-backend
+            source venv/bin/activate
+            pip install -r requirements.txt --quiet
+
+            # Run migrations if needed
+            alembic upgrade head 2>/dev/null || true
+
+            # Restart backend service
+            systemctl restart rajacloud.service
+            echo "✅ Backend restarted"
+
+            # Frontend is static - no build needed
+            echo "✅ Frontend updated"
+
+            echo "🚀 Deployment complete!"
