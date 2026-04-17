@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.core.config import settings
 from app.models.user import User
 
 logger = logging.getLogger(__name__)
@@ -57,8 +58,7 @@ async def upload_media(
     with open(filepath, "wb") as f:
         f.write(contents)
 
-    # URL (production mein yeh CDN URL hoga)
-    file_url = f"/uploads/{filename}"
+    file_url = f"{settings.BASE_URL}/uploads/{filename}"
 
     logger.info(f"📎 Media uploaded: {filename} ({media_type}, {len(contents)//1024}KB)")
 

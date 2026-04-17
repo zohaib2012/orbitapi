@@ -129,8 +129,7 @@ window.uploadWelcomeMedia = async function(input) {
   if (!file) return;
   try {
     const data = await uploadMedia(file);
-    const url  = `https://api.rajacloud.online${data.url}`;
-    document.getElementById("s-welcome-media-url").value = url;
+    document.getElementById("s-welcome-media-url").value = data.url;
     const icons = { image:"🖼️", video:"🎬", audio:"🎵" };
     const preview = document.getElementById("welcomeMediaPreview");
     if (preview) preview.style.display = "block";
@@ -183,10 +182,9 @@ window.uploadLogo = async function(input) {
   if (!file) return;
   try {
     const data = await uploadMedia(file);
-    const url  = `https://api.rajacloud.online${data.url}`;
     const prev = document.getElementById("logoPreview");
-    if (prev) prev.innerHTML = `<img src="${url}" alt="logo">`;
-    await Settings.update({ logo_url: url });
+    if (prev) prev.innerHTML = `<img src="${data.url}" alt="logo">`;
+    await Settings.update({ logo_url: data.url });
     showToast("Logo uploaded ✅","success");
   } catch(e) { showToast("Upload failed","error"); }
 };

@@ -61,7 +61,6 @@ def update_settings(data: SettingsUpdate, db: Session = Depends(get_db), current
         s = BusinessSettings(user_id=current_user.id)
         db.add(s)
     for field, value in data.model_dump(exclude_unset=True).items():
-        if value is not None:
-            setattr(s, field, value)
+        setattr(s, field, value if value != "" else None)
     db.commit()
     return {"message": "Settings updated ✅"}
