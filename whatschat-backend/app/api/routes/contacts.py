@@ -96,6 +96,32 @@ def delete_contact(contact_id: int, db: Session = Depends(get_db), current_user:
     return {"message": "Contact deleted"}
 
 
+@router.post("/delete-bulk")
+def delete_contacts_bulk(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Delete multiple contacts at once. Body: {"ids": [1,2,3]} OR {"all": true}"""
+    ids = data.get("ids") or []
+    delete_all = data.get("all") is True
+
+    if delete_all:
+        count = db.query(Contact).filter(Contact.user_id == current_user.id).delete(synchronize_session=False)
+        db.commit()
+        return {"deleted": count, "message": f"All {count} contacts deleted"}
+
+    if not ids:
+        raise HTTPException(status_code=400, detail="Provide 'ids' array or 'all': true")
+
+    count = db.query(Contact).filter(
+        Contact.user_id == current_user.id,
+        Contact.id.in_(ids)
+    ).delete(synchronize_session=False)
+    db.commit()
+    return {"deleted": count, "message": f"{count} contacts deleted"}
+
+
 @router.post("/import/csv")
 async def import_csv(
     file: UploadFile = File(...),

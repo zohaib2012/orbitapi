@@ -17,19 +17,25 @@ async function loadStats() {
   } catch(e) { console.error(e); }
 }
 
+// selected contact ids
+const selectedContacts = new Set();
+
 async function loadContacts(search = "") {
   try {
-    const params = {};
+    const params = { limit: 10000 };
     if (search) params.search = search;
     const list = await Contacts.getAll(params);
     const tbody = document.getElementById("contactsTable");
     if (!tbody) return;
     if (!list.length) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:#9ca3af">No contacts found</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:30px;color:#9ca3af">No contacts found</td></tr>`;
       return;
     }
     tbody.innerHTML = list.map(c => `
       <tr>
+        <td style="padding:12px 16px;text-align:center;">
+          <input type="checkbox" class="contact-checkbox" value="${c.id}" onclick="toggleContactSelection(${c.id}, this)" ${selectedContacts.has(c.id) ? "checked" : ""}>
+        </td>
         <td style="padding:12px 16px;font-weight:500">${c.name}</td>
         <td style="padding:12px 16px;font-size:13px;color:#6b7280">
           <div>📞 ${c.phone}</div>
@@ -47,7 +53,85 @@ async function loadContacts(search = "") {
           <button onclick="deleteContact(${c.id})" style="border:1px solid #fecaca;background:#fef2f2;color:#dc2626;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer">Delete</button>
         </td>
       </tr>`).join("");
+    updateBulkBar();
   } catch(e) { showToast("Contacts load nahi hue", "error"); }
+}
+
+function toggleContactSelection(id, el) {
+  if (el.checked) selectedContacts.add(id);
+  else selectedContacts.delete(id);
+  updateBulkBar();
+  syncSelectAllCheckbox();
+}
+
+function toggleSelectAll(el) {
+  const boxes = document.querySelectorAll(".contact-checkbox");
+  if (el.checked) {
+    boxes.forEach(b => { b.checked = true; selectedContacts.add(parseInt(b.value)); });
+  } else {
+    boxes.forEach(b => { b.checked = false; });
+    selectedContacts.clear();
+  }
+  updateBulkBar();
+}
+
+function syncSelectAllCheckbox() {
+  const all = document.querySelectorAll(".contact-checkbox");
+  const header = document.getElementById("selectAllCheckbox");
+  if (!header || !all.length) return;
+  const checkedCount = Array.from(all).filter(b => b.checked).length;
+  header.checked = checkedCount === all.length;
+  header.indeterminate = checkedCount > 0 && checkedCount < all.length;
+}
+
+function updateBulkBar() {
+  const bar = document.getElementById("bulkActionBar");
+  const count = document.getElementById("bulkCount");
+  if (!bar) return;
+  if (selectedContacts.size > 0) {
+    bar.style.display = "flex";
+    if (count) count.textContent = selectedContacts.size;
+  } else {
+    bar.style.display = "none";
+  }
+}
+
+function clearSelection() {
+  selectedContacts.clear();
+  document.querySelectorAll(".contact-checkbox").forEach(b => b.checked = false);
+  const header = document.getElementById("selectAllCheckbox");
+  if (header) { header.checked = false; header.indeterminate = false; }
+  updateBulkBar();
+}
+
+async function deleteSelected() {
+  if (!selectedContacts.size) return;
+  if (!confirm(`${selectedContacts.size} contacts delete karna chahte ho?`)) return;
+  try {
+    const ids = Array.from(selectedContacts);
+    const r = await Contacts.deleteMany(ids);
+    showToast(`${r.deleted} contacts deleted ✅`);
+    selectedContacts.clear();
+    await loadStats();
+    await loadContacts();
+  } catch(e) { showToast(e.message || "Delete failed", "error"); }
+}
+
+async function deleteAllContacts() {
+  if (!confirm("SAB contacts delete karna chahte ho? Ye action wapis nahi ho sakta.")) return;
+  if (!confirm("Confirm once more — SAB contacts permanently delete ho jayenge!")) return;
+  try {
+    const r = await Contacts.deleteAll();
+    showToast(`${r.deleted} contacts deleted ✅`);
+    selectedContacts.clear();
+    await loadStats();
+    await loadContacts();
+  } catch(e) { showToast(e.message || "Delete failed", "error"); }
+}
+
+function exportContactsCSV() {
+  Contacts.exportCSV();
+  showToast("Export started 📥");
 }
 
 // Search

@@ -1,0 +1,672 @@
+/* ==========================================================================
+   Raja Cloud — Modern UI Enhancement Layer v2 (BOLD redesign)
+   Loaded on every page AFTER inline <style>. Uniform overrides + DRAMATIC polish.
+   ========================================================================== */
+
+:root {
+  --rc-green:        #25D366;
+  --rc-green-dark:   #0f6e5d;
+  --rc-green-deep:   #128C7E;
+  --rc-green-light:  #e8faf0;
+  --rc-accent:       #1ebe5a;
+  --rc-teal:         #0d9488;
+  --rc-sidebar-bg:   #0f172a;
+  --rc-sidebar-grad: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+  --rc-gradient:     linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+  --rc-gradient-v:   linear-gradient(180deg, #25D366 0%, #128C7E 100%);
+  --rc-gradient-soft:linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+  --rc-shadow-sm:    0 1px 2px rgba(16, 24, 40, 0.05);
+  --rc-shadow:       0 4px 16px rgba(16, 24, 40, 0.08), 0 2px 4px rgba(16, 24, 40, 0.04);
+  --rc-shadow-lg:    0 12px 32px rgba(16, 24, 40, 0.12), 0 4px 8px rgba(16, 24, 40, 0.06);
+  --rc-shadow-green: 0 8px 24px rgba(37, 211, 102, 0.35);
+  --rc-ring:         0 0 0 4px rgba(37, 211, 102, 0.18);
+  --rc-ease:         cubic-bezier(.4, 0, .2, 1);
+}
+
+/* ---------- global smoothing + scrollbars ---------- */
+html { scroll-behavior: smooth; }
+
+* { transition: background-color .25s var(--rc-ease), color .25s var(--rc-ease),
+               border-color .25s var(--rc-ease), box-shadow .25s var(--rc-ease),
+               transform .25s var(--rc-ease), opacity .25s var(--rc-ease); }
+
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 100px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--rc-green);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+/* ---------- body backdrop (subtle green radial) ---------- */
+body {
+  background:
+    radial-gradient(1200px 600px at -10% -20%, rgba(37, 211, 102, 0.07), transparent 60%),
+    radial-gradient(900px 500px at 110% 120%, rgba(18, 140, 126, 0.05), transparent 60%),
+    var(--main-bg, #f4f6f8) !important;
+}
+
+/* ======================================================================
+   SIDEBAR — DARK THEME with GRADIENT (universal: covers both structures)
+   ====================================================================== */
+
+.sidebar, nav.sidebar, aside.sidebar {
+  background: var(--rc-sidebar-grad) !important;
+  border-right: 1px solid rgba(255,255,255,0.04) !important;
+  box-shadow: 4px 0 24px rgba(15, 23, 42, 0.12) !important;
+}
+
+/* Logo area */
+.sidebar .logo, .sidebar .sidebar-logo, aside.sidebar .logo, nav.sidebar .sidebar-logo {
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+  padding: 20px 18px !important;
+}
+
+.sidebar .logo span,
+.sidebar .sidebar-logo span,
+aside.sidebar .logo span {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  letter-spacing: -.3px;
+  background: linear-gradient(135deg, #ffffff 0%, #a7f3d0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.sidebar .logo img,
+.sidebar .sidebar-logo img {
+  box-shadow: 0 6px 18px rgba(37,211,102,0.4);
+  transition: transform .35s var(--rc-ease);
+}
+.sidebar .logo:hover img,
+.sidebar .sidebar-logo:hover img { transform: rotate(-6deg) scale(1.08); }
+
+.logo-icon {
+  background: var(--rc-gradient) !important;
+  box-shadow: 0 6px 18px rgba(37,211,102,0.45) !important;
+}
+
+.sidebar-divider { border-color: rgba(255,255,255,0.06) !important; }
+
+.nav-label {
+  color: rgba(255,255,255,0.35) !important;
+  font-weight: 700 !important;
+  letter-spacing: .8px !important;
+}
+
+/* UNIVERSAL nav link — matches all patterns across pages */
+.sidebar nav a,
+.sidebar > a,
+.sidebar .nav-item,
+.sidebar .nav-link,
+nav.sidebar a,
+nav.sidebar .nav-item,
+aside.sidebar nav a,
+aside.sidebar .nav-item {
+  position: relative;
+  color: rgba(255,255,255,0.70) !important;
+  border-radius: 10px !important;
+  font-weight: 500 !important;
+  padding: 10px 14px !important;
+  margin: 2px 10px !important;
+  font-size: 13.5px !important;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  overflow: hidden;
+}
+
+/* left accent bar that scales in on hover */
+.sidebar nav a::before,
+.sidebar > a::before,
+.sidebar .nav-item::before,
+.sidebar .nav-link::before,
+nav.sidebar a::before,
+nav.sidebar .nav-item::before,
+aside.sidebar nav a::before,
+aside.sidebar .nav-item::before {
+  content: '';
+  position: absolute;
+  left: -10px; top: 50%;
+  transform: translateY(-50%) scaleY(0);
+  width: 4px; height: 70%;
+  background: var(--rc-gradient-v);
+  border-radius: 0 3px 3px 0;
+  transition: transform .25s var(--rc-ease);
+}
+
+/* hover state */
+.sidebar nav a:hover,
+.sidebar > a:not(.logout-link):hover,
+.sidebar .nav-item:hover,
+.sidebar .nav-link:hover,
+nav.sidebar a:hover,
+nav.sidebar .nav-item:hover,
+aside.sidebar nav a:hover,
+aside.sidebar .nav-item:hover {
+  background: rgba(255,255,255,0.06) !important;
+  color: #ffffff !important;
+  transform: translateX(3px);
+}
+
+.sidebar nav a:hover::before,
+.sidebar > a:not(.logout-link):hover::before,
+.sidebar .nav-item:hover::before,
+.sidebar .nav-link:hover::before,
+nav.sidebar a:hover::before,
+nav.sidebar .nav-item:hover::before,
+aside.sidebar nav a:hover::before,
+aside.sidebar .nav-item:hover::before { transform: translateY(-50%) scaleY(1); }
+
+/* active state — DRAMATIC gradient */
+.sidebar nav a.active,
+.sidebar > a.active,
+.sidebar .nav-item.active,
+.sidebar .nav-link.active,
+nav.sidebar a.active,
+nav.sidebar .nav-item.active,
+aside.sidebar nav a.active,
+aside.sidebar .nav-item.active {
+  background: var(--rc-gradient) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 8px 20px rgba(37, 211, 102, 0.45), inset 0 1px 0 rgba(255,255,255,0.15) !important;
+  transform: translateX(0) !important;
+}
+
+.sidebar nav a.active::before,
+.sidebar > a.active::before,
+.sidebar .nav-item.active::before,
+.sidebar .nav-link.active::before,
+nav.sidebar a.active::before,
+nav.sidebar .nav-item.active::before { display: none; }
+
+/* icons on active / hover */
+.sidebar nav a.active svg,
+.sidebar .nav-item.active svg,
+.sidebar nav a.active .icon,
+.sidebar .nav-item.active .icon,
+.sidebar nav a.active i,
+.sidebar .nav-item.active i {
+  color: #fff !important;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25));
+}
+
+.sidebar nav a svg,
+.sidebar .nav-item svg,
+.sidebar nav a .icon,
+.sidebar .nav-item .icon {
+  color: rgba(255,255,255,0.65);
+  transition: transform .25s var(--rc-ease);
+}
+
+.sidebar nav a:hover svg,
+.sidebar .nav-item:hover svg,
+.sidebar nav a:hover .icon,
+.sidebar .nav-item:hover .icon {
+  transform: scale(1.12);
+  color: #ffffff !important;
+}
+
+/* bottom user card on sidebar */
+.sidebar .user-info,
+.sidebar .user-card {
+  background: rgba(255,255,255,0.04) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  border-top: 1px solid rgba(255,255,255,0.08) !important;
+}
+
+.sidebar .user-info .name,
+.sidebar .user-card .user-name,
+.sidebar .user-details .name { color: #ffffff !important; }
+
+.sidebar .user-info .email,
+.sidebar .user-card .user-plan,
+.sidebar .user-details .email { color: rgba(255,255,255,0.55) !important; }
+
+.user-avatar {
+  background: var(--rc-gradient) !important;
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4) !important;
+}
+
+.sidebar .logout-link {
+  color: rgba(255,255,255,0.60) !important;
+  margin: 6px 10px !important;
+  border-radius: 10px !important;
+}
+.sidebar .logout-link:hover {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #fca5a5 !important;
+}
+
+/* ======================================================================
+   TOP HEADER / PAGE HEADER
+   ====================================================================== */
+
+.topbar, .header, .top-header, .page-header {
+  backdrop-filter: saturate(180%) blur(8px);
+  -webkit-backdrop-filter: saturate(180%) blur(8px);
+}
+
+/* Page title with gradient text */
+.page-title, h1.page-title, .main > h1, .content > h1 {
+  background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 800 !important;
+  letter-spacing: -.5px !important;
+}
+
+/* ======================================================================
+   CARDS, STATS, PANELS
+   ====================================================================== */
+
+.card, .stat-card, .panel, .box, .metric-card,
+.bot-card, .menu-card, .item-card, .contact-card,
+.campaign-card, .template-card, .team-card, .log-card,
+.section, .content-card, .plan-card, .table-card,
+.current-banner {
+  border-radius: 14px !important;
+  border: 1px solid rgba(16, 24, 40, 0.06) !important;
+  background: #ffffff !important;
+  box-shadow: var(--rc-shadow-sm) !important;
+  transition: transform .3s var(--rc-ease), box-shadow .3s var(--rc-ease), border-color .25s var(--rc-ease);
+}
+
+.card:hover, .stat-card:hover, .panel:hover, .metric-card:hover,
+.bot-card:hover, .menu-card:hover, .item-card:hover,
+.campaign-card:hover, .template-card:hover, .team-card:hover,
+.plan-card:hover, .table-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--rc-shadow-lg) !important;
+  border-color: rgba(37, 211, 102, 0.30) !important;
+}
+
+.stat-card, .metric-card { position: relative; overflow: hidden; }
+
+.stat-card::before, .metric-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--rc-gradient);
+  border-radius: 14px 14px 0 0;
+  opacity: 0;
+  transition: opacity .3s var(--rc-ease);
+}
+.stat-card:hover::before, .metric-card:hover::before { opacity: 1; }
+
+.stat-card::after, .metric-card::after {
+  content: '';
+  position: absolute; top: -50%; right: -50%;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(37,211,102,0.10) 0%, transparent 70%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .4s var(--rc-ease);
+}
+.stat-card:hover::after, .metric-card:hover::after { opacity: 1; }
+
+/* Plan card (subscriptions) popular */
+.plan-card.popular {
+  border-color: var(--rc-green) !important;
+  border-width: 2px !important;
+  box-shadow: 0 12px 40px rgba(37, 211, 102, 0.22) !important;
+  position: relative;
+}
+.plan-card.popular::before {
+  content: '';
+  position: absolute; inset: -2px;
+  border-radius: 14px;
+  padding: 2px;
+  background: var(--rc-gradient);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.popular-tag {
+  background: var(--rc-gradient) !important;
+  box-shadow: 0 4px 14px rgba(37, 211, 102, 0.4) !important;
+}
+
+/* ======================================================================
+   BUTTONS
+   ====================================================================== */
+
+button, .btn, .btn-primary, .btn-main, .btn-action, .btn-save,
+.btn-choose, input[type="submit"] {
+  cursor: pointer;
+  font-weight: 600 !important;
+  letter-spacing: .01em;
+  transition: transform .18s var(--rc-ease), box-shadow .25s var(--rc-ease),
+              background .25s var(--rc-ease), opacity .22s var(--rc-ease), filter .22s var(--rc-ease);
+}
+
+button:not(:disabled):hover, .btn:not(:disabled):hover,
+.btn-primary:not(:disabled):hover, .btn-main:not(:disabled):hover,
+.btn-action:not(:disabled):hover, .btn-save:not(:disabled):hover {
+  transform: translateY(-2px);
+}
+
+button:not(:disabled):active, .btn:not(:disabled):active {
+  transform: translateY(0);
+}
+
+.btn-primary, .btn-main,
+.btn-choose.green,
+button[class*="primary"], button[class*="green"] {
+  background: var(--rc-gradient) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(37, 211, 102, 0.32) !important;
+}
+
+.btn-primary:not(:disabled):hover, .btn-main:not(:disabled):hover,
+.btn-choose.green:not(:disabled):hover,
+button[class*="primary"]:not(:disabled):hover,
+button[class*="green"]:not(:disabled):hover {
+  box-shadow: 0 10px 28px rgba(37, 211, 102, 0.48) !important;
+  filter: brightness(1.06);
+}
+
+.btn-secondary, .btn-choose.outline,
+button[class*="secondary"], button[class*="cancel"] {
+  background: #ffffff !important;
+  color: #374151 !important;
+  border: 1px solid #e5e7eb !important;
+}
+.btn-secondary:hover, .btn-choose.outline:hover,
+button[class*="secondary"]:hover, button[class*="cancel"]:hover {
+  border-color: var(--rc-green) !important;
+  color: var(--rc-green-deep) !important;
+  background: var(--rc-green-light) !important;
+}
+
+.btn-danger, button[class*="delete"], button[class*="danger"] {
+  background: #ffffff !important;
+  color: #dc2626 !important;
+  border: 1px solid #fecaca !important;
+}
+.btn-danger:hover, button[class*="delete"]:hover, button[class*="danger"]:hover {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+  color: #ffffff !important;
+  border-color: #dc2626 !important;
+  box-shadow: 0 8px 22px rgba(220, 38, 38, 0.38) !important;
+}
+
+/* ======================================================================
+   INPUTS
+   ====================================================================== */
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+textarea, select {
+  transition: border-color .22s var(--rc-ease), box-shadow .25s var(--rc-ease), background .2s var(--rc-ease);
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+textarea:focus, select:focus {
+  border-color: var(--rc-green) !important;
+  box-shadow: var(--rc-ring) !important;
+  outline: none !important;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):hover:not(:focus),
+textarea:hover:not(:focus), select:hover:not(:focus) {
+  border-color: #94a3b8 !important;
+}
+
+/* Custom checkbox */
+input[type="checkbox"] {
+  width: 17px; height: 17px;
+  cursor: pointer;
+  accent-color: var(--rc-green);
+}
+
+/* ======================================================================
+   BADGES / PILLS / TAGS
+   ====================================================================== */
+
+.badge, .status, .pill, .tag, .chip {
+  transition: transform .22s var(--rc-ease), background .25s var(--rc-ease);
+  font-weight: 600 !important;
+}
+.badge:hover, .status:hover, .pill:hover, .tag:hover, .chip:hover { transform: translateY(-1px); }
+
+/* ======================================================================
+   TABLES
+   ====================================================================== */
+
+table { border-collapse: separate; border-spacing: 0; }
+table tbody tr { transition: background .22s var(--rc-ease); }
+table tbody tr:hover {
+  background: var(--rc-green-light) !important;
+}
+table thead th, th {
+  font-weight: 700 !important;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  font-size: 11.5px !important;
+  color: #475569 !important;
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+/* ======================================================================
+   AVATARS / PROFILE CIRCLES
+   ====================================================================== */
+
+.avatar, .profile-circle, .user-avatar {
+  transition: transform .25s var(--rc-ease), box-shadow .25s var(--rc-ease);
+}
+.avatar:hover, .profile-circle:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 16px rgba(37, 211, 102, 0.30);
+}
+
+/* ======================================================================
+   MODALS
+   ====================================================================== */
+
+.modal, .modal-content, .modal-body, .dialog {
+  border-radius: 18px !important;
+  box-shadow: 0 25px 60px -12px rgba(0,0,0,0.28), 0 0 0 1px rgba(0,0,0,0.03) !important;
+  animation: rc-modal-pop .3s var(--rc-ease);
+}
+@keyframes rc-modal-pop {
+  from { opacity: 0; transform: translateY(14px) scale(.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-overlay, .overlay, .backdrop {
+  backdrop-filter: blur(6px) saturate(120%);
+  -webkit-backdrop-filter: blur(6px) saturate(120%);
+  animation: rc-fade .25s var(--rc-ease);
+  background: rgba(15, 23, 42, 0.45) !important;
+}
+@keyframes rc-fade { from { opacity: 0 } to { opacity: 1 } }
+
+/* ======================================================================
+   ICONS LIFT ON CARD HOVER
+   ====================================================================== */
+
+.stat-card svg, .metric-card svg, .stat-card .icon, .metric-card .icon {
+  transition: transform .3s var(--rc-ease);
+}
+.stat-card:hover svg, .stat-card:hover .icon,
+.metric-card:hover svg, .metric-card:hover .icon { transform: scale(1.15) rotate(-4deg); }
+
+/* ======================================================================
+   LINKS
+   ====================================================================== */
+
+a { transition: color .18s var(--rc-ease); }
+
+/* ======================================================================
+   PAGE ENTRY ANIMATION
+   ====================================================================== */
+
+main, .main, .main-content, .content {
+  animation: rc-page-in .4s var(--rc-ease);
+}
+@keyframes rc-page-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ======================================================================
+   LOADING SHIMMER
+   ====================================================================== */
+
+.rc-shimmer {
+  background: linear-gradient(90deg, #f3f4f6 0%, #ffffff 40%, #f3f4f6 80%);
+  background-size: 200% 100%;
+  animation: rc-shimmer 1.4s infinite linear;
+}
+@keyframes rc-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ======================================================================
+   FOCUS-VISIBLE ACCESSIBILITY
+   ====================================================================== */
+
+:focus-visible {
+  outline: 2px solid var(--rc-green);
+  outline-offset: 2px;
+}
+button:focus-visible, a:focus-visible {
+  outline: 2px solid var(--rc-green);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
+/* ======================================================================
+   TABS
+   ====================================================================== */
+
+.tab-btn, .tab, [role="tab"] {
+  position: relative;
+  transition: color .22s var(--rc-ease);
+}
+.tab-btn.active, .tab.active, [role="tab"].active {
+  background: var(--rc-gradient) !important;
+  color: #ffffff !important;
+}
+
+/* ======================================================================
+   DROPDOWN MENUS
+   ====================================================================== */
+
+.dropdown-menu, .menu-dropdown, .popover {
+  border-radius: 12px !important;
+  box-shadow: var(--rc-shadow-lg) !important;
+  border: 1px solid rgba(16, 24, 40, 0.08) !important;
+  animation: rc-dropdown .2s var(--rc-ease);
+}
+@keyframes rc-dropdown {
+  from { opacity: 0; transform: translateY(-6px) scale(.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.dropdown-item, .menu-item {
+  transition: background .18s var(--rc-ease), color .18s var(--rc-ease);
+}
+.dropdown-item:hover, .menu-item:hover {
+  background: var(--rc-green-light) !important;
+  color: var(--rc-green-deep) !important;
+}
+
+/* ======================================================================
+   LIST ITEM
+   ====================================================================== */
+
+.conversation-item, .chat-item, .list-item, .contact-item {
+  transition: background .22s var(--rc-ease), transform .22s var(--rc-ease);
+}
+.conversation-item:hover, .chat-item:hover, .list-item:hover, .contact-item:hover {
+  transform: translateX(2px);
+}
+
+/* ======================================================================
+   Connect WhatsApp button (top right)
+   ====================================================================== */
+
+.connect-btn, [onclick*="connect"], button.connect {
+  background: var(--rc-gradient) !important;
+  color: #ffffff !important;
+  border: none !important;
+  padding: 8px 16px !important;
+  border-radius: 9px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 14px rgba(37, 211, 102, 0.32) !important;
+}
+
+/* ======================================================================
+   Bulk action bar (contacts)
+   ====================================================================== */
+
+.bulk-action-bar {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #ffffff;
+  padding: 12px 20px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+  animation: rc-dropdown .3s var(--rc-ease);
+}
+.bulk-action-bar .bulk-count {
+  font-weight: 700;
+  font-size: 14px;
+}
+.bulk-action-bar button {
+  background: rgba(255,255,255,0.1) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255,255,255,0.15) !important;
+  padding: 7px 14px !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer;
+}
+.bulk-action-bar button:hover {
+  background: rgba(255,255,255,0.18) !important;
+}
+.bulk-action-bar button.danger {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+  border-color: transparent !important;
+}
+.bulk-action-bar button.danger:hover {
+  box-shadow: 0 8px 22px rgba(220, 38, 38, 0.38) !important;
+}
+
+/* ======================================================================
+   CANVAS / CHARTS
+   ====================================================================== */
+
+canvas { border-radius: 10px; }
+
+/* ======================================================================
+   Text adjustments inside dark sidebar
+   ====================================================================== */
+
+.sidebar .user-details .name,
+.sidebar .user-info .name,
+.sidebar .user-card .user-name { color: #ffffff !important; }
+
+.sidebar .user-details .email,
+.sidebar .user-info .email,
+.sidebar .user-card .user-plan { color: rgba(255,255,255,0.50) !important; }

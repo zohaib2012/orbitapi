@@ -137,6 +137,8 @@ const Contacts = {
   async create(data)     { return await apiFetch("/contacts/", { method: "POST", body: JSON.stringify(data) }); },
   async update(id, data) { return await apiFetch(`/contacts/${id}`, { method: "PUT", body: JSON.stringify(data) }); },
   async delete(id)       { return await apiFetch(`/contacts/${id}`, { method: "DELETE" }); },
+  async deleteMany(ids)  { return await apiFetch(`/contacts/delete-bulk`, { method: "POST", body: JSON.stringify({ ids }) }); },
+  async deleteAll()      { return await apiFetch(`/contacts/delete-bulk`, { method: "POST", body: JSON.stringify({ all: true }) }); },
   async importCSV(file)  { const fd = new FormData(); fd.append("file", file); return await apiUpload("/contacts/import/csv", fd); },
   exportCSV()            { window.open(`${API_BASE}/contacts/export/csv?token=${getToken()}`, "_blank"); },
 };
