@@ -23,6 +23,20 @@ UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
+class FCMTokenRequest(BaseModel):
+    fcm_token: str
+
+@router.post("/fcm-token")
+def register_fcm_token(
+    data: FCMTokenRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    current_user.fcm_token = data.fcm_token
+    db.commit()
+    return {"message": "FCM token registered"}
+
+
 # ─── MODELS ───────────────────────────────────────────────────────────────────
 
 class SendReply(BaseModel):

@@ -66,6 +66,7 @@ class User(Base):
     whatsapp_connected = Column(Boolean, default=False)
     whatsapp_phone_id = Column(String(100), nullable=True)
     whatsapp_token = Column(Text, nullable=True)
+    fcm_token = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

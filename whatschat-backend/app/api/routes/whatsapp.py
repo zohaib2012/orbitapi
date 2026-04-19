@@ -21,6 +21,7 @@ from app.services.whatsapp_service import (
     send_whatsapp_interactive_buttons,
     upload_media_to_whatsapp, send_whatsapp_media_by_id,
 )
+from app.services.fcm_service import send_push_notification
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/whatsapp", tags=["WhatsApp API"])
@@ -274,6 +275,16 @@ async def webhook_receive(request: Request, db: Session = Depends(get_db)):
                         logger.warning(f"Contact auto-save failed: {ce}")
 
                     logger.info(f"📨 Incoming message from {from_phone}: {content or msg_type}")
+
+                    # ── FCM Push Notification ─────────────────────────────
+                    if user.fcm_token:
+                        notif_body = content if content else f"📎 {msg_type}"
+                        send_push_notification(
+                            fcm_token=user.fcm_token,
+                            title=customer_name or from_phone,
+                            body=notif_body,
+                            data={"phone": from_phone, "type": msg_type},
+                        )
 
                     # ── Welcome Message (first-time user check) ───────────
                     is_first = await _check_first_time_user(db, user, from_phone)
