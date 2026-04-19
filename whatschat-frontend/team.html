@@ -217,7 +217,7 @@
 <div class="modal-overlay" id="inviteModalOverlay" onclick="closeInviteOutside(event)">
   <div class="modal">
     <div class="modal-title">Team Member Invite Karein</div>
-    <form id="inviteForm">
+    <form id="inviteForm" onsubmit="return false;">
       <div class="form-group">
         <label>Full Name</label>
         <input type="text" id="inv-name" placeholder="Ahmed Ali">
@@ -236,8 +236,8 @@
       </div>
     </form>
     <div class="modal-actions">
-      <button class="btn-secondary" onclick="closeInviteModal()">Cancel</button>
-      <button class="btn-primary" id="inviteBtn" onclick="inviteMember()">Send Invite</button>
+      <button type="button" class="btn-secondary" onclick="closeInviteModal()">Cancel</button>
+      <button type="button" class="btn-primary" id="inviteBtn" onclick="inviteMember()">Send Invite</button>
     </div>
   </div>
 </div>
