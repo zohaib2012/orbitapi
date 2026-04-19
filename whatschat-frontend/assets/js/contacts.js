@@ -106,11 +106,11 @@ function clearSelection() {
 
 async function deleteSelected() {
   if (!selectedContacts.size) return;
-  if (!confirm(`${selectedContacts.size} contacts delete karna chahte ho?`)) return;
+  if (!confirm(`${selectedContacts.size} contacts aur unki inbox conversations delete karna chahte ho?`)) return;
   try {
     const ids = Array.from(selectedContacts);
     const r = await Contacts.deleteMany(ids);
-    showToast(`${r.deleted} contacts deleted ✅`);
+    showToast(`${r.deleted} contacts + inbox deleted ✅`);
     selectedContacts.clear();
     await loadStats();
     await loadContacts();
@@ -118,11 +118,11 @@ async function deleteSelected() {
 }
 
 async function deleteAllContacts() {
-  if (!confirm("SAB contacts delete karna chahte ho? Ye action wapis nahi ho sakta.")) return;
-  if (!confirm("Confirm once more — SAB contacts permanently delete ho jayenge!")) return;
+  if (!confirm("SAB contacts aur unki SAARI inbox conversations delete karna chahte ho? Ye action wapis nahi ho sakta.")) return;
+  if (!confirm("Confirm once more — SAB contacts + inbox permanently delete ho jayenge!")) return;
   try {
     const r = await Contacts.deleteAll();
-    showToast(`${r.deleted} contacts deleted ✅`);
+    showToast(`${r.deleted} contacts + inbox deleted ✅`);
     selectedContacts.clear();
     await loadStats();
     await loadContacts();

@@ -102,24 +102,52 @@ def delete_contacts_bulk(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Delete multiple contacts at once. Body: {"ids": [1,2,3]} OR {"all": true}"""
+    """Delete multiple contacts at once. Body: {"ids": [1,2,3]} OR {"all": true}
+    Also deletes associated inbox conversations and favorites for those phone numbers."""
+    from app.models.user import InboxMessage, FavoriteConversation
+
     ids = data.get("ids") or []
     delete_all = data.get("all") is True
 
     if delete_all:
-        count = db.query(Contact).filter(Contact.user_id == current_user.id).delete(synchronize_session=False)
+        db.query(InboxMessage).filter(
+            InboxMessage.user_id == current_user.id
+        ).delete(synchronize_session=False)
+        db.query(FavoriteConversation).filter(
+            FavoriteConversation.user_id == current_user.id
+        ).delete(synchronize_session=False)
+        count = db.query(Contact).filter(
+            Contact.user_id == current_user.id
+        ).delete(synchronize_session=False)
         db.commit()
-        return {"deleted": count, "message": f"All {count} contacts deleted"}
+        return {"deleted": count, "message": f"All {count} contacts + inbox conversations deleted"}
 
     if not ids:
         raise HTTPException(status_code=400, detail="Provide 'ids' array or 'all': true")
+
+    phones = [
+        p for (p,) in db.query(Contact.phone).filter(
+            Contact.user_id == current_user.id,
+            Contact.id.in_(ids)
+        ).all() if p
+    ]
+
+    if phones:
+        db.query(InboxMessage).filter(
+            InboxMessage.user_id == current_user.id,
+            InboxMessage.customer_phone.in_(phones)
+        ).delete(synchronize_session=False)
+        db.query(FavoriteConversation).filter(
+            FavoriteConversation.user_id == current_user.id,
+            FavoriteConversation.customer_phone.in_(phones)
+        ).delete(synchronize_session=False)
 
     count = db.query(Contact).filter(
         Contact.user_id == current_user.id,
         Contact.id.in_(ids)
     ).delete(synchronize_session=False)
     db.commit()
-    return {"deleted": count, "message": f"{count} contacts deleted"}
+    return {"deleted": count, "message": f"{count} contacts + inbox conversations deleted"}
 
 
 @router.post("/import/csv")
