@@ -5,3 +5,5 @@ __pycache__/
 .env
 uploads/*
 !uploads/.gitkeep
+firebase-adminsdk.json
+.claude/
