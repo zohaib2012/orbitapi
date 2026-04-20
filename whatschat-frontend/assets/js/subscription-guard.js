@@ -26,7 +26,7 @@
     }
 
     if (!userData) return;
-    if (userData.email === 'admin@rajacloud.com') return;
+    if (userData.email === 'admin@orbitapi.com') return;
     if (userData.is_approved === true) return;
 
     // Block karo
