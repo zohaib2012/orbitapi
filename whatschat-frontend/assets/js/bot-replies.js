@@ -187,7 +187,7 @@ window.handleMediaUpload = async function(input) {
   setLoading(btn, true);
   try {
     const data = await uploadMedia(file);
-    const url  = `https://api.rajacloud.online${data.url}`;
+    const url  = `https://orbitconnects.online${data.url}`;
     document.getElementById("uploadedMediaUrl").value = url;
     const icons = { image:"🖼️", video:"🎬", audio:"🎵", document:"📄" };
     document.getElementById("uploadedIcon").textContent = icons[data.media_type] || "📎";

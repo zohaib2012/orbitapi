@@ -363,7 +363,7 @@ function renderMessages(msgs, scroll = true) {
       let src = m.media_url || `/uploads/${m.content}`;
       // FIX: Ensure absolute URL
       if (src && !src.startsWith("http") && !src.startsWith("blob:")) {
-        src = `https://api.rajacloud.online${src.startsWith('/') ? '' : '/'}${src}`;
+        src = `https://orbitconnects.online${src.startsWith('/') ? '' : '/'}${src}`;
       }
 
       if (m.message_type === "image") {
@@ -641,7 +641,7 @@ window.sendMessage = async function() {
       cancelReply();
       removeMedia();
 
-      const r = await fetch("https://api.rajacloud.online/api/inbox/send-media", {
+      const r = await fetch("https://orbitconnects.online/api/inbox/send-media", {
         method:  "POST",
         headers: { "Authorization": `Bearer ${getToken()}` },
         body:    fd,
@@ -842,7 +842,7 @@ async function sendRecordedAudio(blob) {
   cancelReply();
 
   try {
-    const r = await fetch("https://api.rajacloud.online/api/inbox/send-audio-record", {
+    const r = await fetch("https://orbitconnects.online/api/inbox/send-audio-record", {
       method:  "POST",
       headers: { "Authorization": `Bearer ${getToken()}` },
       body:    fd,

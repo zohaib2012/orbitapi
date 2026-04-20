@@ -198,7 +198,7 @@ window.launchFBSignup = function() {
     FB.login(function(response) {
       if (response.authResponse) {
         const code = response.authResponse.code;
-        fetch('https://api.rajacloud.online/api/whatsapp/fb-exchange', {
+        fetch('https://orbitconnects.online/api/whatsapp/fb-exchange', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

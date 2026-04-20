@@ -3,7 +3,7 @@
 // Path: whatschat-frontend/assets/js/api.js
 // =====================================================
 
-const API_BASE = "https://api.rajacloud.online/api";
+const API_BASE = "https://orbitconnects.online/api";
 
 function getToken()    { return localStorage.getItem("wc_token"); }
 function setToken(t)   { localStorage.setItem("wc_token", t); }
