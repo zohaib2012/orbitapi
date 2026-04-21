@@ -481,21 +481,3 @@ async def send_whatsapp_interactive_buttons(
             detail = resp.text
         raise HTTPException(resp.status_code, f"Interactive Button Error: {detail}")
 
-
-# ─── MARK MESSAGE AS READ (Blue Tick) ────────────────────────────────────────
-
-def send_read_receipt(phone_number_id: str, token: str, whatsapp_message_id: str):
-    """Tell WhatsApp to show blue tick for a received message."""
-    url     = f"{WHATSAPP_API_URL}/{phone_number_id}/messages"
-    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-    payload = {
-        "messaging_product": "whatsapp",
-        "status":            "read",
-        "message_id":        whatsapp_message_id,
-    }
-    try:
-        import requests
-        requests.post(url, headers=headers, json=payload, timeout=8)
-        logger.info(f"Read receipt sent: {whatsapp_message_id}")
-    except Exception as e:
-        logger.warning(f"Read receipt failed for {whatsapp_message_id}: {e}")

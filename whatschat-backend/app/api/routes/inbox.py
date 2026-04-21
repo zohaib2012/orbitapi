@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, Depends, Query, UploadFile, File, Form, HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -137,22 +137,10 @@ def get_conversations(
 
 @router.get("/conversation/{phone}")
 def get_conversation_messages(
-    phone:            str,
-    background_tasks: BackgroundTasks,
-    db:               Session = Depends(get_db),
-    current_user:     User    = Depends(get_current_user),
+    phone:        str,
+    db:           Session = Depends(get_db),
+    current_user: User    = Depends(get_current_user),
 ):
-    from app.services.whatsapp_service import send_read_receipt
-
-    # Collect unread inbound messages with whatsapp_message_id before marking read
-    unread = db.query(InboxMessage).filter(
-        InboxMessage.user_id            == current_user.id,
-        InboxMessage.customer_phone     == phone,
-        InboxMessage.direction          == MessageDirection.inbound,
-        InboxMessage.is_read            == False,
-        InboxMessage.whatsapp_message_id != None,
-    ).all()
-
     msgs = db.query(InboxMessage).filter(
         InboxMessage.user_id        == current_user.id,
         InboxMessage.customer_phone == phone,
@@ -164,16 +152,6 @@ def get_conversation_messages(
         InboxMessage.direction      == MessageDirection.inbound,
     ).update({"is_read": True})
     db.commit()
-
-    # Send blue tick to WhatsApp in background (non-blocking)
-    if current_user.whatsapp_phone_id and current_user.whatsapp_token:
-        for msg in unread:
-            background_tasks.add_task(
-                send_read_receipt,
-                current_user.whatsapp_phone_id,
-                current_user.whatsapp_token,
-                msg.whatsapp_message_id,
-            )
 
     return [_msg_dict(m) for m in msgs]
 
