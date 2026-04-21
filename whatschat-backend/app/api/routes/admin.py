@@ -8,14 +8,16 @@ from typing import Optional
 
 router = APIRouter(prefix="/auth/admin", tags=["Admin"])
 
+ADMIN_EMAILS = {"admin@orbitapi.com", "admin@orbitconnects.online"}
+
 def require_admin(current_user: User = Depends(get_current_user)):
-    if current_user.email != "admin@orbitapi.com":
+    if current_user.email not in ADMIN_EMAILS:
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
 
 @router.get("/users")
 def get_all_users(db: Session = Depends(get_db), admin: User = Depends(require_admin)):
-    users = db.query(User).filter(User.email != "admin@orbitapi.com").order_by(User.created_at.desc()).all()
+    users = db.query(User).filter(User.email.notin_(ADMIN_EMAILS)).order_by(User.created_at.desc()).all()
     return [{
         "id": u.id,
         "email": u.email,
